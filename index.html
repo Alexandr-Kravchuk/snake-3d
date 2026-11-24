@@ -1,0 +1,271 @@
+
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Справжня 3D-Змійка</title>
+<style>
+  :root{--bg:#050b12;--panel:rgba(10,22,34,.78);--line:rgba(110,220,255,.18);--txt:#eaf7ff;--muted:#8fb2c6;--acc:#7dff6a;--acc2:#4de3ff;--danger:#ff5d7a;--up:#ffd166}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{margin:0;color:var(--txt);font-family:ui-rounded,"Segoe UI",system-ui,-apple-system,sans-serif;overflow:hidden;user-select:none;
+    background:radial-gradient(1100px 700px at 12% -10%,rgba(77,227,255,.16),transparent 60%),radial-gradient(900px 600px at 108% 112%,rgba(125,255,106,.12),transparent 55%),var(--bg)}
+  #app{height:100dvh;display:flex;flex-direction:column;gap:12px;padding:clamp(10px,2vw,20px)}
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px;margin-right:auto}
+  .logo{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(77,227,255,.25),rgba(125,255,106,.14));border:1px solid var(--line);box-shadow:0 0 24px rgba(77,227,255,.2)}
+  h1{margin:0;font-size:clamp(17px,2.3vw,25px);letter-spacing:.05em} h1 span{color:var(--acc2)}
+  .brand p{margin:2px 0 0;color:var(--muted);font-size:12px}
+  .stats{display:flex;gap:10px}
+  .stat{min-width:82px;padding:8px 12px;border-radius:14px;background:var(--panel);border:1px solid var(--line);text-align:center}
+  .stat b{display:block;font-size:20px;color:var(--acc2);font-variant-numeric:tabular-nums}
+  .stat small{color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+  .iconbtn,.btn,select{font:inherit;color:var(--txt);border:1px solid var(--line);background:var(--panel);border-radius:12px;cursor:pointer;transition:.15s transform,.15s background,.15s border-color}
+  .iconbtn{width:42px;height:42px;font-size:18px;display:grid;place-items:center}
+  .iconbtn:hover,.btn:hover,select:hover{border-color:rgba(77,227,255,.55);background:rgba(16,36,52,.92)}
+  .iconbtn:active,.btn:active{transform:scale(.96)}
+  .iconbtn[aria-pressed="true"]{border-color:var(--acc);color:var(--acc)}
+  #stage{position:relative;flex:1;min-height:0;border-radius:24px;overflow:hidden;border:1px solid var(--line);
+    background:radial-gradient(120% 120% at 50% 0%,#0a1826 0%,#050b12 72%);box-shadow:inset 0 0 90px rgba(0,0,0,.55),0 20px 60px rgba(0,0,0,.4)}
+  #scene{display:block;width:100%;height:100%;touch-action:none;cursor:grab} #scene:active{cursor:grabbing}
+  .hud{position:absolute;top:14px;left:14px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none;max-width:calc(100% - 28px)}
+  .badge{padding:7px 12px;border-radius:999px;background:rgba(5,11,18,.72);border:1px solid var(--line);color:var(--muted);font-size:12px;backdrop-filter:blur(6px)}
+  .badge b{color:var(--acc2)} .badge.coords b{color:var(--up)}
+  .hint{position:absolute;right:14px;bottom:12px;color:rgba(180,215,235,.6);font-size:11px;pointer-events:none;text-align:right;line-height:1.5}
+  #toast{position:absolute;left:50%;top:16%;transform:translateX(-50%);padding:10px 18px;border-radius:999px;background:rgba(125,255,106,.14);border:1px solid rgba(125,255,106,.45);color:var(--acc);font-weight:700;opacity:0;transition:opacity .25s;pointer-events:none}
+  #overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(3,8,14,.6);backdrop-filter:blur(7px);z-index:5} #overlay.hidden{display:none}
+  .panel{width:min(470px,calc(100% - 36px));padding:28px;border-radius:24px;text-align:center;background:linear-gradient(160deg,rgba(14,32,48,.96),rgba(7,17,27,.96));border:1px solid rgba(77,227,255,.28);box-shadow:0 30px 80px rgba(0,0,0,.55)}
+  .panel h2{margin:0 0 10px;font-size:29px;letter-spacing:.04em} .panel h2 em{font-style:normal;color:var(--acc2)}
+  .panel p{margin:8px 0;color:var(--muted);line-height:1.55;font-size:14px} .panel .big{font-size:44px;color:var(--acc2);font-weight:800;margin:6px 0}
+  .btn{padding:13px 22px;font-weight:700;font-size:15px}
+  .btn.primary{background:linear-gradient(135deg,var(--acc2),var(--acc));color:#04202a;border:none;box-shadow:0 8px 28px rgba(77,227,255,.3)} .btn.primary:hover{filter:brightness(1.08)}
+  .panel .row{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+  .keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;text-align:left;margin:16px auto 0;max-width:340px;font-size:13px;color:var(--muted)} .keys b{color:var(--txt);font-weight:600}
+  kbd{padding:2px 7px;border-radius:6px;background:rgba(255,255,255,.07);border:1px solid var(--line);font-family:inherit;font-size:12px}
+  footer{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .move3d{display:flex;gap:12px;align-items:center}
+  .dpad{display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(2,42px);gap:5px}
+  .dpad button{font-size:18px;border-radius:10px}
+  .dpad [data-dir="fwd"]{grid-column:2;grid-row:1}.dpad [data-dir="left"]{grid-column:1;grid-row:2}.dpad [data-dir="back"]{grid-column:2;grid-row:2}.dpad [data-dir="right"]{grid-column:3;grid-row:2}
+  .vertical{display:grid;grid-template-rows:repeat(2,42px);gap:5px}
+  .vertical button{width:64px;font-size:13px;font-weight:700;border-radius:10px}
+  .vertical [data-dir="up"]{color:var(--up);border-color:rgba(255,209,102,.35)}
+  .vertical [data-dir="down"]{color:#9adfff;border-color:rgba(154,223,255,.3)}
+  .keyhelp{color:var(--muted);font-size:12px;line-height:1.7;flex:1;min-width:200px}
+  .settings{display:flex;gap:8px;align-items:center;flex-wrap:wrap} select{padding:10px 12px}
+  @media (max-width:760px){.brand p,.keyhelp,.hint,#resetCamBtn{display:none}header{gap:8px}header .iconbtn{width:38px;height:38px}.stat{min-width:66px;padding:6px 9px}.stat b{font-size:17px}footer{gap:10px}.dpad{grid-template-columns:repeat(3,50px);grid-template-rows:repeat(2,46px)}.vertical{grid-template-rows:repeat(2,46px)}.settings{margin-left:auto}}
+  @media (max-height:560px){.brand p,.keyhelp,.hint{display:none}#app{gap:8px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" stroke="#4de3ff" stroke-width="1.6"/><path d="M12 22V12M12 12 3 7M12 12l9-5" stroke="#7dff6a" stroke-width="1.4"/><circle cx="12" cy="12" r="2" fill="#ffd166"/></svg></div>
+      <div><h1>ЗМІЙКА <span>3D CUBE</span></h1><p>Великий куб 13 × 13 × 13 · повільний старт</p></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="score">0</b><small>очки</small></div>
+      <div class="stat"><b id="best">0</b><small>рекорд</small></div>
+      <div class="stat"><b id="len">4</b><small>довжина</small></div>
+    </div>
+    <button class="iconbtn" id="soundBtn" aria-pressed="true" title="Звук (M)">🔊</button>
+    <button class="iconbtn" id="camBtn" title="Повернути камеру (C)">⟳</button>
+    <button class="iconbtn" id="resetCamBtn" title="Скинути камеру">⌂</button>
+  </header>
+
+  <main id="stage">
+    <canvas id="scene"></canvas>
+    <div class="hud">
+      <span class="badge">Швидкість <b id="speed">×1.0</b></span>
+      <span class="badge" id="diffBadge">Повільно</span>
+      <span class="badge coords">Голова <b id="coords">X7 Y7 Z7</b></span>
+    </div>
+    <div id="toast"></div>
+    <div class="hint">Перетягни мишею / пальцем — обертати куб · коліщатко — масштаб<br>WASD / стрілки — горизонтально · E / Q — вгору / вниз</div>
+    <div id="overlay"></div>
+  </main>
+
+  <footer>
+    <div class="move3d" aria-label="Керування у 3D">
+      <div class="dpad">
+        <button class="iconbtn" data-dir="fwd" aria-label="Вперед">▲</button>
+        <button class="iconbtn" data-dir="left" aria-label="Ліворуч">◀</button>
+        <button class="iconbtn" data-dir="back" aria-label="Назад">▼</button>
+        <button class="iconbtn" data-dir="right" aria-label="Праворуч">▶</button>
+      </div>
+      <div class="vertical">
+        <button class="iconbtn" data-dir="up" aria-label="Вгору по Y">⬆ Y+</button>
+        <button class="iconbtn" data-dir="down" aria-label="Вниз по Y">⬇ Y−</button>
+      </div>
+    </div>
+    <div class="keyhelp"><kbd>WASD</kbd> / <kbd>←↑↓→</kbd> горизонтально &nbsp; <kbd>E</kbd> вгору &nbsp; <kbd>Q</kbd> вниз &nbsp; <kbd>Space</kbd> пауза &nbsp; <kbd>R</kbd> заново &nbsp; <kbd>C</kbd> камера</div>
+    <div class="settings">
+      <select id="difficulty" aria-label="Складність"><option value="easy" selected>Повільно</option><option value="normal">Помірно</option><option value="hard">Швидко</option></select>
+      <button class="btn" id="pauseBtn">Пауза</button>
+      <button class="btn" id="restartBtn">Заново</button>
+    </div>
+  </footer>
+</div>
+<script src="vendor/three.min.js"></script>
+<script>
+'use strict';
+(function(){
+const N=13, H=(N-1)/2, FLOOR=-N/2;
+const DIFF={easy:{base:420,min:340,label:'Повільно'},normal:{base:320,min:230,label:'Помірно'},hard:{base:240,min:160,label:'Швидко'}};
+const $=id=>document.getElementById(id);
+const canvas=$('scene'), overlay=$('overlay'), toastEl=$('toast');
+let state='ready', snake=[], prevSnake=[], dir={x:1,y:0,z:0}, queue=[], food={x:0,y:0,z:0};
+let score=0, eaten=0, best=0, tickMs=420, acc=0, last=performance.now();
+let soundOn=true, audio=null, particles=[], meshes=[];
+let camTheta=.35, camPhi=.95, targetTheta=.35, targetPhi=.95, zoom=1, shake=0;
+try{best=parseInt(localStorage.getItem('snake3d-true-best')||'0',10)||0;}catch(e){}
+
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
+const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x050b12,.008);
+const camera=new THREE.PerspectiveCamera(45,1,.1,300);
+scene.add(new THREE.HemisphereLight(0xcfefff,0x0a1420,.65));
+const sun=new THREE.DirectionalLight(0xffffff,1.0); sun.position.set(12,20,9); sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024); const sc=sun.shadow.camera; sc.left=-N;sc.right=N;sc.top=N;sc.bottom=-N;sc.near=1;sc.far=N*5; scene.add(sun);
+const rim=new THREE.PointLight(0x4de3ff,.8,60); rim.position.set(-12,8,-12); scene.add(rim);
+
+/* Arena cube */
+const arena=new THREE.Group(); scene.add(arena);
+const cubeEdges=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(N,N,N)),
+  new THREE.LineBasicMaterial({color:0x4de3ff,transparent:true,opacity:.55}));
+arena.add(cubeEdges);
+const floorGrid=new THREE.GridHelper(N,N,0x2a6a86,0x173648); floorGrid.position.y=FLOOR; arena.add(floorGrid);
+const floorPlane=new THREE.Mesh(new THREE.PlaneGeometry(N,N),new THREE.MeshStandardMaterial({color:0x081420,roughness:.9,metalness:.1,transparent:true,opacity:.85}));
+floorPlane.rotation.x=-Math.PI/2; floorPlane.position.y=FLOOR-.01; floorPlane.receiveShadow=true; arena.add(floorPlane);
+const layerPts=[new THREE.Vector3(-H-.5,0,-H-.5),new THREE.Vector3(H+.5,0,-H-.5),new THREE.Vector3(H+.5,0,H+.5),new THREE.Vector3(-H-.5,0,H+.5)];
+const layerLine=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(layerPts),new THREE.LineBasicMaterial({color:0x7dff6a,transparent:true,opacity:.3}));
+arena.add(layerLine);
+const cornerGeo=new THREE.SphereGeometry(.09,10,8), cornerMat=new THREE.MeshBasicMaterial({color:0x4de3ff});
+for(const x of [-1,1])for(const y of [-1,1])for(const z of [-1,1]){const c=new THREE.Mesh(cornerGeo,cornerMat);c.position.set(x*N/2,y*N/2,z*N/2);arena.add(c);}
+
+function roundedBox(size,r){
+  const h=size/2-r, sh=new THREE.Shape();
+  sh.moveTo(-h,-h-r);sh.lineTo(h,-h-r);sh.quadraticCurveTo(h+r,-h-r,h+r,-h);sh.lineTo(h+r,h);sh.quadraticCurveTo(h+r,h+r,h,h+r);sh.lineTo(-h,h+r);sh.quadraticCurveTo(-h-r,h+r,-h-r,h);sh.lineTo(-h-r,-h);sh.quadraticCurveTo(-h-r,-h-r,-h,-h-r);
+  const g=new THREE.ExtrudeGeometry(sh,{depth:size-2*r,bevelEnabled:true,bevelThickness:r,bevelSize:r,bevelSegments:3,curveSegments:4});g.center();return g;
+}
+const bodyGeo=roundedBox(.78,.14);
+const bodyMat=new THREE.MeshStandardMaterial({color:0x59ff8f,emissive:0x1faa4f,emissiveIntensity:.5,roughness:.3,metalness:.15});
+const headMat=new THREE.MeshStandardMaterial({color:0xc4ff8a,emissive:0x66cc33,emissiveIntensity:.65,roughness:.25,metalness:.1});
+const eyeW=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.2});
+const eyeB=new THREE.MeshStandardMaterial({color:0x050b12,roughness:.2});
+function makeHead(){
+  const g=new THREE.Group(); const m=new THREE.Mesh(roundedBox(.9,.16),headMat); m.castShadow=true; g.add(m);
+  for(const sx of [-1,1]){const w=new THREE.Mesh(new THREE.SphereGeometry(.11,12,10),eyeW);w.position.set(sx*.23,.2,.4);g.add(w);const b=new THREE.Mesh(new THREE.SphereGeometry(.052,10,8),eyeB);b.position.set(sx*.23,.2,.49);g.add(b);}
+  return g;
+}
+const foodGroup=new THREE.Group(); scene.add(foodGroup);
+const apple=new THREE.Mesh(new THREE.SphereGeometry(.34,20,16),new THREE.MeshStandardMaterial({color:0xff4d6d,emissive:0xff2244,emissiveIntensity:.75,roughness:.25,metalness:.1})); apple.castShadow=true; foodGroup.add(apple);
+const foodLight=new THREE.PointLight(0xff5d7a,1.2,7); foodGroup.add(foodLight);
+const foodRing=new THREE.Mesh(new THREE.TorusGeometry(.48,.03,10,32),new THREE.MeshBasicMaterial({color:0xff5d7a,transparent:true,opacity:.65})); foodGroup.add(foodRing);
+const foodLineGeo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]);
+const foodLine=new THREE.Line(foodLineGeo,new THREE.LineBasicMaterial({color:0xff5d7a,transparent:true,opacity:.28})); foodLine.frustumCulled=false; scene.add(foodLine);
+const foodFloorRing=new THREE.Mesh(new THREE.RingGeometry(.3,.44,24),new THREE.MeshBasicMaterial({color:0xff5d7a,transparent:true,opacity:.3,side:THREE.DoubleSide}));
+foodFloorRing.rotation.x=-Math.PI/2; foodFloorRing.position.y=FLOOR+.02; scene.add(foodFloorRing);
+const headFloorRing=new THREE.Mesh(new THREE.RingGeometry(.26,.4,24),new THREE.MeshBasicMaterial({color:0x7dff6a,transparent:true,opacity:.25,side:THREE.DoubleSide}));
+headFloorRing.rotation.x=-Math.PI/2; headFloorRing.position.y=FLOOR+.02; scene.add(headFloorRing);
+const partGeo=new THREE.BoxGeometry(.09,.09,.09);
+
+const wx=v=>v-H, wy=v=>v-H, wz=v=>v-H;
+const key=c=>c.x+','+c.y+','+c.z;
+function freeCell(){const occ=new Set(snake.map(key)),free=[];for(let y=0;y<N;y++)for(let z=0;z<N;z++)for(let x=0;x<N;x++)if(!occ.has(x+','+y+','+z))free.push({x,y,z});return free.length?free[Math.floor(Math.random()*free.length)]:null;}
+function beep(f,d,type,g){if(!soundOn)return;try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),v=audio.createGain();o.type=type||'sine';o.frequency.value=f;v.gain.setValueAtTime(g||.08,audio.currentTime);v.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.connect(v);v.connect(audio.destination);o.start();o.stop(audio.currentTime+d);}catch(e){}}
+function eatSound(){beep(660,.09,'triangle',.09);setTimeout(()=>beep(990,.12,'triangle',.08),60);}
+function dieSound(){beep(220,.25,'sawtooth',.07);setTimeout(()=>beep(140,.35,'sawtooth',.06),120);}
+function toast(t){toastEl.textContent=t;toastEl.style.opacity=1;clearTimeout(toast._t);toast._t=setTimeout(()=>toastEl.style.opacity=0,900);}
+function burst(pos,color,n){for(let i=0;i<(n||14);i++){const mat=new THREE.MeshBasicMaterial({color,transparent:true});const m=new THREE.Mesh(partGeo,mat);m.position.copy(pos);const a=Math.random()*Math.PI*2,b=Math.random()*Math.PI-Math.PI/2,sp=1.5+Math.random()*3;m.userData={v:new THREE.Vector3(Math.cos(a)*Math.cos(b)*sp,Math.sin(b)*sp+1.5,Math.sin(a)*Math.cos(b)*sp),life:.7+Math.random()*.4};scene.add(m);particles.push(m);}}
+function syncMeshes(){while(meshes.length<snake.length){let m;if(meshes.length===0)m=makeHead();else{m=new THREE.Mesh(bodyGeo,bodyMat);m.castShadow=true;}scene.add(m);meshes.push(m);}while(meshes.length>snake.length){const m=meshes.pop();scene.remove(m);}}
+function updateHUD(){$('score').textContent=score;$('best').textContent=best;$('len').textContent=snake.length;const d=DIFF[$('difficulty').value];$('speed').textContent='×'+(d.base/tickMs).toFixed(1);$('diffBadge').textContent=d.label;const h=snake[0];$('coords').textContent='X'+(h.x+1)+' Y'+(h.y+1)+' Z'+(h.z+1);$('difficulty').disabled=(state==='playing'||state==='paused');$('pauseBtn').textContent=state==='paused'?'Продовжити':'Пауза';}
+function saveBest(){if(score>best){best=score;try{localStorage.setItem('snake3d-true-best',String(best));}catch(e){}}}
+
+function showOverlay(kind,reason){
+  overlay.classList.remove('hidden');
+  if(kind==='ready'){overlay.innerHTML=`<div class="panel"><h2>Справжня <em>3D</em>-змійка</h2><p>Тепер змійка рухається не лише по площині, а по великому кубу <b style="color:var(--txt)">13 × 13 × 13</b>. Полюй на яблука в об'ємі, використовуй висоту й не врізайся у стіни куба чи власний хвіст.</p><div class="keys"><b><kbd>WASD</kbd> / <kbd>←↑↓→</kbd></b><span>горизонтальний рух</span><b><kbd>E</kbd> / <kbd>Q</kbd></b><span>вгору / вниз по Y</span><b><kbd>Space</kbd></b><span>пауза / старт</span><b><kbd>C</kbd></b><span>повернути камеру</span><b>Перетягування</b><span>обертання куба</span></div><div class="row"><button class="btn primary" data-action="start">▶ Почати 3D-гру</button></div></div>`;}
+  else if(kind==='paused'){overlay.innerHTML=`<div class="panel"><h2>Пауза</h2><p>Куб завмер. Можна видихнути 🙂</p><div class="row"><button class="btn primary" data-action="resume">Продовжити</button><button class="btn" data-action="restart">Заново</button></div></div>`;}
+  else if(kind==='over'){overlay.innerHTML=`<div class="panel"><h2>Гру завершено</h2><p>${reason||''}</p><div class="big">${score}</div><p>очок · рекорд: <b style="color:var(--acc2)">${best}</b></p><div class="row"><button class="btn primary" data-action="restart">↻ Ще раз</button></div></div>`;}
+  else if(kind==='win'){overlay.innerHTML=`<div class="panel"><h2>Перемога! 🏆</h2><p>Ти заповнив увесь куб. Це легендарно.</p><div class="big">${score}</div><div class="row"><button class="btn primary" data-action="restart">Ще раз</button></div></div>`;}
+}
+function hideOverlay(){overlay.classList.add('hidden');overlay.innerHTML='';}
+overlay.addEventListener('click',e=>{const a=e.target.closest('[data-action]');if(!a)return;if(a.dataset.action==='start')startGame();else if(a.dataset.action==='resume')resume();else if(a.dataset.action==='restart')restart();});
+
+function reset(){const c=Math.floor(N/2);snake=[{x:c,y:c,z:c},{x:c-1,y:c,z:c},{x:c-2,y:c,z:c},{x:c-3,y:c,z:c}];prevSnake=snake.map(c=>({...c}));dir={x:1,y:0,z:0};queue=[];score=0;eaten=0;acc=0;tickMs=DIFF[$('difficulty').value].base;food=freeCell()||{x:0,y:0,z:0};syncMeshes();updateHUD();placeFood();}
+function startGame(){if(state==='playing')return;reset();state='playing';hideOverlay();updateHUD();beep(520,.08,'triangle',.07);setTimeout(()=>beep(780,.1,'triangle',.07),80);}
+function restart(){state='ready';startGame();}
+function pause(){if(state!=='playing')return;state='paused';showOverlay('paused');updateHUD();}
+function resume(){if(state!=='paused')return;state='playing';hideOverlay();acc=0;updateHUD();}
+function togglePause(){if(state==='playing')pause();else if(state==='paused')resume();else startGame();}
+function die(reason){state='over';saveBest();updateHUD();dieSound();shake=.5;const h=snake[0];burst(new THREE.Vector3(wx(h.x),wy(h.y),wz(h.z)),0xff5d7a,24);showOverlay('over',reason);}
+function win(){state='win';saveBest();updateHUD();beep(880,.15,'triangle',.09);setTimeout(()=>beep(1320,.3,'triangle',.09),150);showOverlay('win');}
+function step(){
+  while(queue.length){const d=queue.shift();if(!(d.x===-dir.x&&d.y===-dir.y&&d.z===-dir.z)&&!(d.x===dir.x&&d.y===dir.y&&d.z===dir.z)){dir=d;break;}}
+  const h={x:snake[0].x+dir.x,y:snake[0].y+dir.y,z:snake[0].z+dir.z};
+  if(h.x<0||h.x>=N||h.y<0||h.y>=N||h.z<0||h.z>=N){die('Зіткнення зі стіною куба.');return;}
+  const grow=(h.x===food.x&&h.y===food.y&&h.z===food.z);const body=grow?snake:snake.slice(0,-1);
+  if(body.some(c=>c.x===h.x&&c.y===h.y&&c.z===h.z)){die('Змійка вкусила сама себе.');return;}
+  prevSnake=snake.map(c=>({...c}));snake.unshift(h);
+  if(grow){score+=10;eaten++;saveBest();eatSound();burst(new THREE.Vector3(wx(food.x),wy(food.y),wz(food.z)),0x7dff6a,18);const d=DIFF[$('difficulty').value];tickMs=Math.max(d.min,d.base-Math.floor(eaten/6)*8);const nf=freeCell();if(!nf){syncMeshes();win();return;}food=nf;placeFood();toast('+10');}else snake.pop();
+  syncMeshes();updateHUD();
+}
+function placeFood(){foodGroup.position.set(wx(food.x),wy(food.y),wz(food.z));foodFloorRing.position.set(wx(food.x),FLOOR+.02,wz(food.z));}
+function pushDir(d){const lastD=queue.length?queue[queue.length-1]:dir;if(d.x===-lastD.x&&d.y===-lastD.y&&d.z===-lastD.z)return;if(d.x===lastD.x&&d.y===lastD.y&&d.z===lastD.z)return;if(queue.length<3)queue.push(d);}
+function setDirection(sx,sy,vertical){
+  if(state==='ready'||state==='over'||state==='win')startGame();if(state!=='playing')return;
+  if(vertical){pushDir({x:0,y:vertical,z:0});return;}
+  const a=Math.round(targetTheta/(Math.PI/2))*(Math.PI/2);
+  const fwd={x:Math.round(-Math.sin(a)),z:Math.round(-Math.cos(a))};const right={x:-fwd.z,z:fwd.x};
+  pushDir({x:right.x*sx+fwd.x*sy,y:0,z:right.z*sx+fwd.z*sy});
+}
+
+const keyDirs={ArrowUp:[0,1,0],ArrowDown:[0,-1,0],ArrowLeft:[-1,0,0],ArrowRight:[1,0,0],w:[0,1,0],s:[0,-1,0],a:[-1,0,0],d:[1,0,0]};
+window.addEventListener('keydown',e=>{const k=e.key.length===1?e.key.toLowerCase():e.key;
+  if(keyDirs[k]){e.preventDefault();setDirection(...keyDirs[k]);}
+  else if(k==='e'||k==='PageUp'){e.preventDefault();setDirection(0,0,1);}
+  else if(k==='q'||k==='PageDown'){e.preventDefault();setDirection(0,0,-1);}
+  else if(k===' '||e.code==='Space'){e.preventDefault();togglePause();}
+  else if(k==='r'){e.preventDefault();restart();}
+  else if(k==='c'){e.preventDefault();targetTheta+=Math.PI/2;}
+  else if(k==='m'){toggleSound();}
+  else if(k==='+'||k==='='){zoom=Math.max(.55,zoom-.1);}
+  else if(k==='-'){zoom=Math.min(2,zoom+.1);}
+});
+document.querySelectorAll('[data-dir]').forEach(b=>{const map={fwd:[0,1,0],back:[0,-1,0],left:[-1,0,0],right:[1,0,0],up:[0,0,1],down:[0,0,-1]};b.addEventListener('pointerdown',e=>{e.preventDefault();setDirection(...map[b.dataset.dir]);});});
+let drag=null;
+canvas.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,type:e.pointerType};canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;targetTheta-=dx*.008;targetPhi=Math.max(.3,Math.min(1.35,targetPhi+dy*.006));drag.x=e.clientX;drag.y=e.clientY;});
+canvas.addEventListener('pointerup',()=>{if(drag&&drag.type==='mouse')targetTheta=Math.round(targetTheta/(Math.PI/2))*(Math.PI/2);drag=null;});
+canvas.addEventListener('pointercancel',()=>drag=null);
+canvas.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(.55,Math.min(2,zoom+(e.deltaY>0?.08:-.08)));},{passive:false});
+function toggleSound(){soundOn=!soundOn;$('soundBtn').textContent=soundOn?'🔊':'🔇';$('soundBtn').setAttribute('aria-pressed',String(soundOn));if(soundOn)beep(700,.08,'triangle',.06);}
+$('soundBtn').onclick=toggleSound;$('camBtn').onclick=()=>{targetTheta+=Math.PI/2;};$('resetCamBtn').onclick=()=>{targetTheta=.35;targetPhi=.95;zoom=1;};$('pauseBtn').onclick=togglePause;$('restartBtn').onclick=restart;
+$('difficulty').onchange=()=>{if(state==='ready'||state==='over'||state==='win'){tickMs=DIFF[$('difficulty').value].base;updateHUD();}};
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});window.addEventListener('blur',()=>pause());
+
+function resize(){const w=canvas.clientWidth||canvas.parentElement.clientWidth,h=canvas.clientHeight||canvas.parentElement.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+window.addEventListener('resize',resize);
+function updateCamera(dt){camTheta+=(targetTheta-camTheta)*Math.min(1,dt*8);camPhi+=(targetPhi-camPhi)*Math.min(1,dt*8);const aspect=camera.aspect||1,r=N*2.22*Math.max(1,1.12/aspect)*zoom;const sp=Math.sin(camPhi),cp=Math.cos(camPhi);camera.position.set(r*sp*Math.sin(camTheta),r*cp,r*sp*Math.cos(camTheta));if(shake>0){camera.position.x+=(Math.random()-.5)*shake;camera.position.y+=(Math.random()-.5)*shake;shake=Math.max(0,shake-dt*1.5);}camera.lookAt(0,0,0);}
+const headQuat=new THREE.Quaternion(), zAxis=new THREE.Vector3(0,0,1), dirVec=new THREE.Vector3();
+function renderSnake(t){const n=snake.length;let hx=0,hy=0,hz=0;for(let i=0;i<n;i++){const to=snake[i],from=prevSnake[i]||prevSnake[prevSnake.length-1]||to;const x=wx(from.x+(to.x-from.x)*t),y=wy(from.y+(to.y-from.y)*t),z=wz(from.z+(to.z-from.z)*t);const m=meshes[i];if(!m)continue;const scl=1-Math.min(.25,i/Math.max(1,n)*.28);m.position.set(x,y,z);m.scale.setScalar(scl);if(i===0){hx=x;hy=y;hz=z;dirVec.set(dir.x,dir.y,dir.z);headQuat.setFromUnitVectors(zAxis,dirVec);m.quaternion.copy(headQuat);}}
+  headFloorRing.position.set(hx,FLOOR+.02,hz);layerLine.position.y=hy;
+}
+function animate(now){
+  requestAnimationFrame(animate);const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(state==='playing'){acc+=dt*1000;while(acc>=tickMs){acc-=tickMs;step();if(state!=='playing')break;}}
+  const t=state==='playing'?Math.min(1,acc/tickMs):1;renderSnake(t);
+  foodGroup.rotation.y+=dt*.9;foodRing.rotation.x+=dt*1.1;foodRing.rotation.y+=dt*.7;foodLight.intensity=1.1+Math.sin(now/200)*.25;
+  const fp=foodGroup.position, arr=foodLineGeo.attributes.position.array;arr[0]=fp.x;arr[1]=fp.y;arr[2]=fp.z;arr[3]=fp.x;arr[4]=FLOOR;arr[5]=fp.z;foodLineGeo.attributes.position.needsUpdate=true;
+  for(let i=particles.length-1;i>=0;i--){const m=particles[i],u=m.userData;u.life-=dt;if(u.life<=0){scene.remove(m);m.material.dispose();particles.splice(i,1);continue;}u.v.y-=6*dt;m.position.addScaledVector(u.v,dt);m.material.opacity=Math.min(1,u.life*2);m.rotation.x+=dt*5;m.rotation.y+=dt*4;}
+  updateCamera(dt);renderer.render(scene,camera);
+}
+reset();resize();showOverlay('ready');updateHUD();requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
