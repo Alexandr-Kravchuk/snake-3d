@@ -12,6 +12,8 @@ export default defineConfig({
     deviceScaleFactor: 1, // keeps the game's adaptive pixel ratio fixed at 1
     trace: 'retain-on-failure',
     launchOptions: {
+      // SLOWMO=400 npx playwright test --headed --workers=1 — watch every action in a visible browser
+      slowMo: Number(process.env.SLOWMO) || 0,
       // Software WebGL (SwiftShader): same pixels on every run, independent of the GPU
       args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
     },

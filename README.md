@@ -34,6 +34,8 @@ npm install
 npx playwright install chromium   # один раз
 npm test                          # усі тести
 npm run test:update               # перезаписати еталонні скриншоти після свідомих візуальних змін
+SLOWMO=500 npx playwright test --headed --workers=1   # видимий браузер, пауза між діями
+npx playwright test --ui          # UI mode: кроки, знімки DOM, запуск окремих тестів
 ```
 
 - Тести відкривають `index.html?test`. Параметр `?test` вмикає хук `window.__snake`: стан гри лише для читання (зокрема `size`) і `setFood()`. Без параметра хука немає.
