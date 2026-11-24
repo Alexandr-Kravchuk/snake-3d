@@ -30,7 +30,7 @@
     background:radial-gradient(120% 120% at 50% 0%,#0a1826 0%,#050b12 72%);box-shadow:inset 0 0 90px rgba(0,0,0,.55),0 20px 60px rgba(0,0,0,.4)}
   #scene{display:block;width:100%;height:100%;touch-action:none;cursor:grab} #scene:active{cursor:grabbing}
   .hud{position:absolute;top:14px;left:14px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none;max-width:calc(100% - 28px)}
-  .badge{padding:7px 12px;border-radius:999px;background:rgba(5,11,18,.72);border:1px solid var(--line);color:var(--muted);font-size:12px;backdrop-filter:blur(6px)}
+  .badge{padding:7px 12px;border-radius:999px;background:rgba(5,11,18,.86);border:1px solid var(--line);color:var(--muted);font-size:12px}
   .badge b{color:var(--acc2)} .badge.coords b{color:var(--up)}
   .hint{position:absolute;right:14px;bottom:12px;color:rgba(180,215,235,.6);font-size:11px;pointer-events:none;text-align:right;line-height:1.5}
   #toast{position:absolute;left:50%;top:16%;transform:translateX(-50%);padding:10px 18px;border-radius:999px;background:rgba(125,255,106,.14);border:1px solid rgba(125,255,106,.45);color:var(--acc);font-weight:700;opacity:0;transition:opacity .25s;pointer-events:none}
@@ -112,18 +112,26 @@
 <script>
 'use strict';
 (function(){
-const N=13, H=(N-1)/2, FLOOR=-N/2;
+const N=13, H=(N-1)/2, FLOOR=-N/2, CELLS=N*N*N;
 const DIFF={easy:{base:420,min:340,label:'Повільно'},normal:{base:320,min:230,label:'Помірно'},hard:{base:240,min:160,label:'Швидко'}};
 const $=id=>document.getElementById(id);
 const canvas=$('scene'), overlay=$('overlay'), toastEl=$('toast');
-let state='ready', snake=[], prevSnake=[], dir={x:1,y:0,z:0}, queue=[], food={x:0,y:0,z:0};
+const ui={score:$('score'),best:$('best'),len:$('len'),speed:$('speed'),diffBadge:$('diffBadge'),coords:$('coords'),difficulty:$('difficulty'),pauseBtn:$('pauseBtn'),soundBtn:$('soundBtn')};
+let state='ready', snake=[], prevTail=null, moved=false, dir={x:1,y:0,z:0}, queue=[], food={x:0,y:0,z:0};
 let score=0, eaten=0, best=0, tickMs=420, acc=0, last=performance.now();
-let soundOn=true, audio=null, particles=[], meshes=[];
+let soundOn=true, audio=null;
 let camTheta=.35, camPhi=.95, targetTheta=.35, targetPhi=.95, zoom=1, shake=0;
 try{best=parseInt(localStorage.getItem('snake3d-true-best')||'0',10)||0;}catch(e){}
 
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+/* Occupancy grid: O(1) self-collision checks and allocation-free free-cell search */
+const occ=new Uint8Array(CELLS);
+const idx=c=>(c.y*N+c.z)*N+c.x;
+function rebuildOcc(){occ.fill(0);for(let i=0;i<snake.length;i++)occ[idx(snake[i])]=1;}
+
+const MAX_DPR=Math.min(devicePixelRatio||1,2);
+let dpr=MAX_DPR;
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(dpr);
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputEncoding=THREE.sRGBEncoding; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
 const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x050b12,.008);
@@ -144,8 +152,10 @@ floorPlane.rotation.x=-Math.PI/2; floorPlane.position.y=FLOOR-.01; floorPlane.re
 const layerPts=[new THREE.Vector3(-H-.5,0,-H-.5),new THREE.Vector3(H+.5,0,-H-.5),new THREE.Vector3(H+.5,0,H+.5),new THREE.Vector3(-H-.5,0,H+.5)];
 const layerLine=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(layerPts),new THREE.LineBasicMaterial({color:0x7dff6a,transparent:true,opacity:.3}));
 arena.add(layerLine);
-const cornerGeo=new THREE.SphereGeometry(.09,10,8), cornerMat=new THREE.MeshBasicMaterial({color:0x4de3ff});
-for(const x of [-1,1])for(const y of [-1,1])for(const z of [-1,1]){const c=new THREE.Mesh(cornerGeo,cornerMat);c.position.set(x*N/2,y*N/2,z*N/2);arena.add(c);}
+/* 8 corner spheres as one instanced draw call */
+const corners=new THREE.InstancedMesh(new THREE.SphereGeometry(.09,10,8),new THREE.MeshBasicMaterial({color:0x4de3ff}),8);
+{const m=new THREE.Matrix4();let k=0;for(const x of [-1,1])for(const y of [-1,1])for(const z of [-1,1])corners.setMatrixAt(k++,m.makeTranslation(x*N/2,y*N/2,z*N/2));}
+arena.add(corners);
 
 function roundedBox(size,r){
   const h=size/2-r, sh=new THREE.Shape();
@@ -159,9 +169,15 @@ const eyeW=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.2});
 const eyeB=new THREE.MeshStandardMaterial({color:0x050b12,roughness:.2});
 function makeHead(){
   const g=new THREE.Group(); const m=new THREE.Mesh(roundedBox(.9,.16),headMat); m.castShadow=true; g.add(m);
-  for(const sx of [-1,1]){const w=new THREE.Mesh(new THREE.SphereGeometry(.11,12,10),eyeW);w.position.set(sx*.23,.2,.4);g.add(w);const b=new THREE.Mesh(new THREE.SphereGeometry(.052,10,8),eyeB);b.position.set(sx*.23,.2,.49);g.add(b);}
+  const wg=new THREE.SphereGeometry(.11,12,10), bg=new THREE.SphereGeometry(.052,10,8);
+  for(const sx of [-1,1]){const w=new THREE.Mesh(wg,eyeW);w.position.set(sx*.23,.2,.4);g.add(w);const b=new THREE.Mesh(bg,eyeB);b.position.set(sx*.23,.2,.49);g.add(b);}
   return g;
 }
+/* Head is its own group (eyes); the whole body is ONE instanced draw call instead of one mesh per segment */
+const head=makeHead(); scene.add(head);
+const body=new THREE.InstancedMesh(bodyGeo,bodyMat,CELLS);
+body.instanceMatrix.setUsage(THREE.DynamicDrawUsage); body.castShadow=true; body.frustumCulled=false; body.count=0; scene.add(body);
+
 const foodGroup=new THREE.Group(); scene.add(foodGroup);
 const apple=new THREE.Mesh(new THREE.SphereGeometry(.34,20,16),new THREE.MeshStandardMaterial({color:0xff4d6d,emissive:0xff2244,emissiveIntensity:.75,roughness:.25,metalness:.1})); apple.castShadow=true; foodGroup.add(apple);
 const foodLight=new THREE.PointLight(0xff5d7a,1.2,7); foodGroup.add(foodLight);
@@ -172,18 +188,29 @@ const foodFloorRing=new THREE.Mesh(new THREE.RingGeometry(.3,.44,24),new THREE.M
 foodFloorRing.rotation.x=-Math.PI/2; foodFloorRing.position.y=FLOOR+.02; scene.add(foodFloorRing);
 const headFloorRing=new THREE.Mesh(new THREE.RingGeometry(.26,.4,24),new THREE.MeshBasicMaterial({color:0x7dff6a,transparent:true,opacity:.25,side:THREE.DoubleSide}));
 headFloorRing.rotation.x=-Math.PI/2; headFloorRing.position.y=FLOOR+.02; scene.add(headFloorRing);
+
+/* Particle pool: meshes and materials are created once and reused (no per-burst allocation / GC) */
 const partGeo=new THREE.BoxGeometry(.09,.09,.09);
+const PART_POOL=64, pool=[], particles=[];
+for(let i=0;i<PART_POOL;i++){const m=new THREE.Mesh(partGeo,new THREE.MeshBasicMaterial({transparent:true}));m.visible=false;m.userData={v:new THREE.Vector3(),life:0};scene.add(m);pool.push(m);}
 
 const wx=v=>v-H, wy=v=>v-H, wz=v=>v-H;
-const key=c=>c.x+','+c.y+','+c.z;
-function freeCell(){const occ=new Set(snake.map(key)),free=[];for(let y=0;y<N;y++)for(let z=0;z<N;z++)for(let x=0;x<N;x++)if(!occ.has(x+','+y+','+z))free.push({x,y,z});return free.length?free[Math.floor(Math.random()*free.length)]:null;}
+function freeCell(){
+  const free=CELLS-snake.length; if(free<=0)return null;
+  let k=Math.floor(Math.random()*free);
+  for(let i=0;i<CELLS;i++){if(!occ[i]&&k--===0){const x=i%N,z=Math.floor(i/N)%N,y=Math.floor(i/(N*N));return {x,y,z};}}
+  return null;
+}
 function beep(f,d,type,g){if(!soundOn)return;try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),v=audio.createGain();o.type=type||'sine';o.frequency.value=f;v.gain.setValueAtTime(g||.08,audio.currentTime);v.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.connect(v);v.connect(audio.destination);o.start();o.stop(audio.currentTime+d);}catch(e){}}
 function eatSound(){beep(660,.09,'triangle',.09);setTimeout(()=>beep(990,.12,'triangle',.08),60);}
 function dieSound(){beep(220,.25,'sawtooth',.07);setTimeout(()=>beep(140,.35,'sawtooth',.06),120);}
 function toast(t){toastEl.textContent=t;toastEl.style.opacity=1;clearTimeout(toast._t);toast._t=setTimeout(()=>toastEl.style.opacity=0,900);}
-function burst(pos,color,n){for(let i=0;i<(n||14);i++){const mat=new THREE.MeshBasicMaterial({color,transparent:true});const m=new THREE.Mesh(partGeo,mat);m.position.copy(pos);const a=Math.random()*Math.PI*2,b=Math.random()*Math.PI-Math.PI/2,sp=1.5+Math.random()*3;m.userData={v:new THREE.Vector3(Math.cos(a)*Math.cos(b)*sp,Math.sin(b)*sp+1.5,Math.sin(a)*Math.cos(b)*sp),life:.7+Math.random()*.4};scene.add(m);particles.push(m);}}
-function syncMeshes(){while(meshes.length<snake.length){let m;if(meshes.length===0)m=makeHead();else{m=new THREE.Mesh(bodyGeo,bodyMat);m.castShadow=true;}scene.add(m);meshes.push(m);}while(meshes.length>snake.length){const m=meshes.pop();scene.remove(m);}}
-function updateHUD(){$('score').textContent=score;$('best').textContent=best;$('len').textContent=snake.length;const d=DIFF[$('difficulty').value];$('speed').textContent='×'+(d.base/tickMs).toFixed(1);$('diffBadge').textContent=d.label;const h=snake[0];$('coords').textContent='X'+(h.x+1)+' Y'+(h.y+1)+' Z'+(h.z+1);$('difficulty').disabled=(state==='playing'||state==='paused');$('pauseBtn').textContent=state==='paused'?'Продовжити':'Пауза';}
+function burst(x,y,z,color,n){for(let i=0;i<(n||14);i++){const m=pool.pop();if(!m)break;m.material.color.setHex(color);m.material.opacity=1;m.position.set(x,y,z);m.rotation.set(0,0,0);m.visible=true;const a=Math.random()*Math.PI*2,b=Math.random()*Math.PI-Math.PI/2,sp=1.5+Math.random()*3;m.userData.v.set(Math.cos(a)*Math.cos(b)*sp,Math.sin(b)*sp+1.5,Math.sin(a)*Math.cos(b)*sp);m.userData.life=.7+Math.random()*.4;particles.push(m);}}
+function syncMeshes(){body.count=Math.max(0,snake.length-1);}
+/* HUD: cached DOM nodes, text written only when it actually changes */
+const hudCache={};
+function setText(k,v){if(hudCache[k]!==v){hudCache[k]=v;ui[k].textContent=v;}}
+function updateHUD(){setText('score',String(score));setText('best',String(best));setText('len',String(snake.length));const d=DIFF[ui.difficulty.value];setText('speed','×'+(d.base/tickMs).toFixed(1));setText('diffBadge',d.label);const h=snake[0];setText('coords','X'+(h.x+1)+' Y'+(h.y+1)+' Z'+(h.z+1));ui.difficulty.disabled=(state==='playing'||state==='paused');setText('pauseBtn',state==='paused'?'Продовжити':'Пауза');}
 function saveBest(){if(score>best){best=score;try{localStorage.setItem('snake3d-true-best',String(best));}catch(e){}}}
 
 function showOverlay(kind,reason){
@@ -196,25 +223,35 @@ function showOverlay(kind,reason){
 function hideOverlay(){overlay.classList.add('hidden');overlay.innerHTML='';}
 overlay.addEventListener('click',e=>{const a=e.target.closest('[data-action]');if(!a)return;if(a.dataset.action==='start')startGame();else if(a.dataset.action==='resume')resume();else if(a.dataset.action==='restart')restart();});
 
-function reset(){const c=Math.floor(N/2);snake=[{x:c,y:c,z:c},{x:c-1,y:c,z:c},{x:c-2,y:c,z:c},{x:c-3,y:c,z:c}];prevSnake=snake.map(c=>({...c}));dir={x:1,y:0,z:0};queue=[];score=0;eaten=0;acc=0;tickMs=DIFF[$('difficulty').value].base;food=freeCell()||{x:0,y:0,z:0};syncMeshes();updateHUD();placeFood();}
+function reset(){const c=Math.floor(N/2);snake=[{x:c,y:c,z:c},{x:c-1,y:c,z:c},{x:c-2,y:c,z:c},{x:c-3,y:c,z:c}];prevTail=null;moved=false;rebuildOcc();dir={x:1,y:0,z:0};queue=[];score=0;eaten=0;acc=0;tickMs=DIFF[ui.difficulty.value].base;food=freeCell()||{x:0,y:0,z:0};syncMeshes();updateHUD();placeFood();}
 function startGame(){if(state==='playing')return;reset();state='playing';hideOverlay();updateHUD();beep(520,.08,'triangle',.07);setTimeout(()=>beep(780,.1,'triangle',.07),80);}
 function restart(){state='ready';startGame();}
 function pause(){if(state!=='playing')return;state='paused';showOverlay('paused');updateHUD();}
 function resume(){if(state!=='paused')return;state='playing';hideOverlay();acc=0;updateHUD();}
 function togglePause(){if(state==='playing')pause();else if(state==='paused')resume();else startGame();}
-function die(reason){state='over';saveBest();updateHUD();dieSound();shake=.5;const h=snake[0];burst(new THREE.Vector3(wx(h.x),wy(h.y),wz(h.z)),0xff5d7a,24);showOverlay('over',reason);}
+function die(reason){state='over';saveBest();updateHUD();dieSound();shake=.5;const h=snake[0];burst(wx(h.x),wy(h.y),wz(h.z),0xff5d7a,24);showOverlay('over',reason);}
 function win(){state='win';saveBest();updateHUD();beep(880,.15,'triangle',.09);setTimeout(()=>beep(1320,.3,'triangle',.09),150);showOverlay('win');}
 function step(){
   while(queue.length){const d=queue.shift();if(!(d.x===-dir.x&&d.y===-dir.y&&d.z===-dir.z)&&!(d.x===dir.x&&d.y===dir.y&&d.z===dir.z)){dir=d;break;}}
   const h={x:snake[0].x+dir.x,y:snake[0].y+dir.y,z:snake[0].z+dir.z};
   if(h.x<0||h.x>=N||h.y<0||h.y>=N||h.z<0||h.z>=N){die('Зіткнення зі стіною куба.');return;}
-  const grow=(h.x===food.x&&h.y===food.y&&h.z===food.z);const body=grow?snake:snake.slice(0,-1);
-  if(body.some(c=>c.x===h.x&&c.y===h.y&&c.z===h.z)){die('Змійка вкусила сама себе.');return;}
-  prevSnake=snake.map(c=>({...c}));snake.unshift(h);
-  if(grow){score+=10;eaten++;saveBest();eatSound();burst(new THREE.Vector3(wx(food.x),wy(food.y),wz(food.z)),0x7dff6a,18);const d=DIFF[$('difficulty').value];tickMs=Math.max(d.min,d.base-Math.floor(eaten/6)*8);const nf=freeCell();if(!nf){syncMeshes();win();return;}food=nf;placeFood();toast('+10');}else snake.pop();
+  const grow=(h.x===food.x&&h.y===food.y&&h.z===food.z);
+  const tail=snake[snake.length-1], hi=idx(h);
+  /* the tail cell is vacated this tick unless the snake grows */
+  if(occ[hi]&&(grow||hi!==idx(tail))){die('Змійка вкусила сама себе.');return;}
+  /* after the shift, the previous position of segment i is the current position of segment i+1; only the old tail needs storing */
+  prevTail=tail;moved=true;snake.unshift(h);
+  if(!grow){snake.pop();occ[idx(tail)]=0;}
+  occ[hi]=1;
+  if(grow){score+=10;eaten++;saveBest();eatSound();burst(wx(food.x),wy(food.y),wz(food.z),0x7dff6a,18);const d=DIFF[ui.difficulty.value];tickMs=Math.max(d.min,d.base-Math.floor(eaten/6)*8);const nf=freeCell();if(!nf){syncMeshes();win();return;}food=nf;placeFood();toast('+10');}
   syncMeshes();updateHUD();
 }
-function placeFood(){foodGroup.position.set(wx(food.x),wy(food.y),wz(food.z));foodFloorRing.position.set(wx(food.x),FLOOR+.02,wz(food.z));}
+function placeFood(){
+  const x=wx(food.x),y=wy(food.y),z=wz(food.z);
+  foodGroup.position.set(x,y,z);foodFloorRing.position.set(x,FLOOR+.02,z);
+  /* the guide line only changes when the food moves, not every frame */
+  const arr=foodLineGeo.attributes.position.array;arr[0]=x;arr[1]=y;arr[2]=z;arr[3]=x;arr[4]=FLOOR;arr[5]=z;foodLineGeo.attributes.position.needsUpdate=true;
+}
 function pushDir(d){const lastD=queue.length?queue[queue.length-1]:dir;if(d.x===-lastD.x&&d.y===-lastD.y&&d.z===-lastD.z)return;if(d.x===lastD.x&&d.y===lastD.y&&d.z===lastD.z)return;if(queue.length<3)queue.push(d);}
 function setDirection(sx,sy,vertical){
   if(state==='ready'||state==='over'||state==='win')startGame();if(state!=='playing')return;
@@ -243,26 +280,49 @@ canvas.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-dra
 canvas.addEventListener('pointerup',()=>{if(drag&&drag.type==='mouse')targetTheta=Math.round(targetTheta/(Math.PI/2))*(Math.PI/2);drag=null;});
 canvas.addEventListener('pointercancel',()=>drag=null);
 canvas.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(.55,Math.min(2,zoom+(e.deltaY>0?.08:-.08)));},{passive:false});
-function toggleSound(){soundOn=!soundOn;$('soundBtn').textContent=soundOn?'🔊':'🔇';$('soundBtn').setAttribute('aria-pressed',String(soundOn));if(soundOn)beep(700,.08,'triangle',.06);}
-$('soundBtn').onclick=toggleSound;$('camBtn').onclick=()=>{targetTheta+=Math.PI/2;};$('resetCamBtn').onclick=()=>{targetTheta=.35;targetPhi=.95;zoom=1;};$('pauseBtn').onclick=togglePause;$('restartBtn').onclick=restart;
-$('difficulty').onchange=()=>{if(state==='ready'||state==='over'||state==='win'){tickMs=DIFF[$('difficulty').value].base;updateHUD();}};
+function toggleSound(){soundOn=!soundOn;ui.soundBtn.textContent=soundOn?'🔊':'🔇';ui.soundBtn.setAttribute('aria-pressed',String(soundOn));if(soundOn)beep(700,.08,'triangle',.06);}
+ui.soundBtn.onclick=toggleSound;$('camBtn').onclick=()=>{targetTheta+=Math.PI/2;};$('resetCamBtn').onclick=()=>{targetTheta=.35;targetPhi=.95;zoom=1;};ui.pauseBtn.onclick=togglePause;$('restartBtn').onclick=restart;
+ui.difficulty.onchange=()=>{if(state==='ready'||state==='over'||state==='win'){tickMs=DIFF[ui.difficulty.value].base;updateHUD();}};
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});window.addEventListener('blur',()=>pause());
 
-function resize(){const w=canvas.clientWidth||canvas.parentElement.clientWidth,h=canvas.clientHeight||canvas.parentElement.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+let dirty=true;
+function resize(){const w=canvas.clientWidth||canvas.parentElement.clientWidth,h=canvas.clientHeight||canvas.parentElement.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();dirty=true;}
 window.addEventListener('resize',resize);
-function updateCamera(dt){camTheta+=(targetTheta-camTheta)*Math.min(1,dt*8);camPhi+=(targetPhi-camPhi)*Math.min(1,dt*8);const aspect=camera.aspect||1,r=N*2.22*Math.max(1,1.12/aspect)*zoom;const sp=Math.sin(camPhi),cp=Math.cos(camPhi);camera.position.set(r*sp*Math.sin(camTheta),r*cp,r*sp*Math.cos(camTheta));if(shake>0){camera.position.x+=(Math.random()-.5)*shake;camera.position.y+=(Math.random()-.5)*shake;shake=Math.max(0,shake-dt*1.5);}camera.lookAt(0,0,0);}
-const headQuat=new THREE.Quaternion(), zAxis=new THREE.Vector3(0,0,1), dirVec=new THREE.Vector3();
-function renderSnake(t){const n=snake.length;let hx=0,hy=0,hz=0;for(let i=0;i<n;i++){const to=snake[i],from=prevSnake[i]||prevSnake[prevSnake.length-1]||to;const x=wx(from.x+(to.x-from.x)*t),y=wy(from.y+(to.y-from.y)*t),z=wz(from.z+(to.z-from.z)*t);const m=meshes[i];if(!m)continue;const scl=1-Math.min(.25,i/Math.max(1,n)*.28);m.position.set(x,y,z);m.scale.setScalar(scl);if(i===0){hx=x;hy=y;hz=z;dirVec.set(dir.x,dir.y,dir.z);headQuat.setFromUnitVectors(zAxis,dirVec);m.quaternion.copy(headQuat);}}
+if(window.ResizeObserver)new ResizeObserver(resize).observe(canvas);
+let camSettled=false;
+function updateCamera(dt){const k=Math.min(1,dt*8);camTheta+=(targetTheta-camTheta)*k;camPhi+=(targetPhi-camPhi)*k;camSettled=Math.abs(targetTheta-camTheta)<1e-4&&Math.abs(targetPhi-camPhi)<1e-4&&shake===0;const aspect=camera.aspect||1,r=N*2.22*Math.max(1,1.12/aspect)*zoom;const sp=Math.sin(camPhi),cp=Math.cos(camPhi);camera.position.set(r*sp*Math.sin(camTheta),r*cp,r*sp*Math.cos(camTheta));if(shake>0){camera.position.x+=(Math.random()-.5)*shake;camera.position.y+=(Math.random()-.5)*shake;shake=Math.max(0,shake-dt*1.5);}camera.lookAt(0,0,0);}
+const zAxis=new THREE.Vector3(0,0,1), dirVec=new THREE.Vector3(), mtx=new THREE.Matrix4();
+function renderSnake(t){const n=snake.length;let hx=0,hy=0,hz=0;
+  for(let i=0;i<n;i++){const to=snake[i],from=moved?(i+1<n?snake[i+1]:(prevTail||to)):to;
+    const x=wx(from.x+(to.x-from.x)*t),y=wy(from.y+(to.y-from.y)*t),z=wz(from.z+(to.z-from.z)*t);
+    const scl=1-Math.min(.25,i/Math.max(1,n)*.28);
+    if(i===0){hx=x;hy=y;hz=z;head.position.set(x,y,z);head.scale.setScalar(scl);dirVec.set(dir.x,dir.y,dir.z);head.quaternion.setFromUnitVectors(zAxis,dirVec);}
+    else{mtx.makeScale(scl,scl,scl);mtx.setPosition(x,y,z);body.setMatrixAt(i-1,mtx);}
+  }
+  body.instanceMatrix.updateRange.offset=0;body.instanceMatrix.updateRange.count=Math.max(0,n-1)*16;body.instanceMatrix.needsUpdate=true;
   headFloorRing.position.set(hx,FLOOR+.02,hz);layerLine.position.y=hy;
+}
+/* Adaptive resolution: if frames are consistently slow, lower the pixel ratio step by step (never below 1) */
+let slowFrames=0, fastFrames=0;
+function adaptQuality(dt){
+  if(dt>=.05)return;
+  if(dt>1/45){slowFrames++;fastFrames=0;}else{fastFrames++;slowFrames=Math.max(0,slowFrames-1);}
+  if(slowFrames>90&&dpr>1){dpr=Math.max(1,+(dpr-.25).toFixed(2));renderer.setPixelRatio(dpr);resize();slowFrames=0;}
+  else if(fastFrames>600&&dpr<MAX_DPR){dpr=Math.min(MAX_DPR,+(dpr+.25).toFixed(2));renderer.setPixelRatio(dpr);resize();fastFrames=0;}
 }
 function animate(now){
   requestAnimationFrame(animate);const dt=Math.min(.05,(now-last)/1000);last=now;
   if(state==='playing'){acc+=dt*1000;while(acc>=tickMs){acc-=tickMs;step();if(state!=='playing')break;}}
+  updateCamera(dt);
+  /* Behind a menu overlay with a still camera and no particles nothing visible changes: skip the GPU work */
+  const idle=state!=='playing'&&!overlay.classList.contains('hidden')&&camSettled&&particles.length===0;
+  if(idle&&!dirty)return;
+  dirty=false;
   const t=state==='playing'?Math.min(1,acc/tickMs):1;renderSnake(t);
   foodGroup.rotation.y+=dt*.9;foodRing.rotation.x+=dt*1.1;foodRing.rotation.y+=dt*.7;foodLight.intensity=1.1+Math.sin(now/200)*.25;
-  const fp=foodGroup.position, arr=foodLineGeo.attributes.position.array;arr[0]=fp.x;arr[1]=fp.y;arr[2]=fp.z;arr[3]=fp.x;arr[4]=FLOOR;arr[5]=fp.z;foodLineGeo.attributes.position.needsUpdate=true;
-  for(let i=particles.length-1;i>=0;i--){const m=particles[i],u=m.userData;u.life-=dt;if(u.life<=0){scene.remove(m);m.material.dispose();particles.splice(i,1);continue;}u.v.y-=6*dt;m.position.addScaledVector(u.v,dt);m.material.opacity=Math.min(1,u.life*2);m.rotation.x+=dt*5;m.rotation.y+=dt*4;}
-  updateCamera(dt);renderer.render(scene,camera);
+  for(let i=particles.length-1;i>=0;i--){const m=particles[i],u=m.userData;u.life-=dt;if(u.life<=0){m.visible=false;particles[i]=particles[particles.length-1];particles.pop();pool.push(m);continue;}u.v.y-=6*dt;m.position.addScaledVector(u.v,dt);m.material.opacity=Math.min(1,u.life*2);m.rotation.x+=dt*5;m.rotation.y+=dt*4;}
+  renderer.render(scene,camera);
+  if(state==='playing')adaptQuality(dt);
 }
 reset();resize();showOverlay('ready');updateHUD();requestAnimationFrame(animate);
 })();
