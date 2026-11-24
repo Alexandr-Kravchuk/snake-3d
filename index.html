@@ -1,10 +1,10 @@
 
 <!doctype html>
-<html lang="uk">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Справжня 3D-Змійка</title>
+<title>True 3D Snake</title>
 <style>
   :root{--bg:#050b12;--panel:rgba(10,22,34,.78);--line:rgba(110,220,255,.18);--txt:#eaf7ff;--muted:#8fb2c6;--acc:#7dff6a;--acc2:#4de3ff;--danger:#ff5d7a;--up:#ffd166}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -63,48 +63,48 @@
   <header>
     <div class="brand">
       <div class="logo" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" stroke="#4de3ff" stroke-width="1.6"/><path d="M12 22V12M12 12 3 7M12 12l9-5" stroke="#7dff6a" stroke-width="1.4"/><circle cx="12" cy="12" r="2" fill="#ffd166"/></svg></div>
-      <div><h1>ЗМІЙКА <span>3D CUBE</span></h1><p>Великий куб 13 × 13 × 13 · повільний старт</p></div>
+      <div><h1>SNAKE <span>3D CUBE</span></h1><p>Big 13 × 13 × 13 cube · slow start</p></div>
     </div>
     <div class="stats">
-      <div class="stat"><b id="score">0</b><small>очки</small></div>
-      <div class="stat"><b id="best">0</b><small>рекорд</small></div>
-      <div class="stat"><b id="len">4</b><small>довжина</small></div>
+      <div class="stat"><b id="score">0</b><small>score</small></div>
+      <div class="stat"><b id="best">0</b><small>best</small></div>
+      <div class="stat"><b id="len">4</b><small>length</small></div>
     </div>
-    <button class="iconbtn" id="soundBtn" aria-pressed="true" title="Звук (M)">🔊</button>
-    <button class="iconbtn" id="camBtn" title="Повернути камеру (C)">⟳</button>
-    <button class="iconbtn" id="resetCamBtn" title="Скинути камеру">⌂</button>
+    <button class="iconbtn" id="soundBtn" aria-pressed="true" title="Sound (M)">🔊</button>
+    <button class="iconbtn" id="camBtn" title="Rotate camera (C)">⟳</button>
+    <button class="iconbtn" id="resetCamBtn" title="Reset camera">⌂</button>
   </header>
 
   <main id="stage">
     <canvas id="scene"></canvas>
     <div class="hud">
-      <span class="badge">Швидкість <b id="speed">×1.0</b></span>
-      <span class="badge" id="diffBadge">Повільно</span>
-      <span class="badge coords">Голова <b id="coords">X7 Y7 Z7</b></span>
+      <span class="badge">Speed <b id="speed">×1.0</b></span>
+      <span class="badge" id="diffBadge">Slow</span>
+      <span class="badge coords">Head <b id="coords">X7 Y7 Z7</b></span>
     </div>
     <div id="toast"></div>
-    <div class="hint">Перетягни мишею / пальцем — обертати куб · коліщатко — масштаб<br>WASD / стрілки — горизонтально · E / Q — вгору / вниз</div>
+    <div class="hint">Drag with mouse / finger to rotate the cube · wheel to zoom<br>WASD / arrows — horizontal · E / Q — up / down</div>
     <div id="overlay"></div>
   </main>
 
   <footer>
-    <div class="move3d" aria-label="Керування у 3D">
+    <div class="move3d" aria-label="3D controls">
       <div class="dpad">
-        <button class="iconbtn" data-dir="fwd" aria-label="Вперед">▲</button>
-        <button class="iconbtn" data-dir="left" aria-label="Ліворуч">◀</button>
-        <button class="iconbtn" data-dir="back" aria-label="Назад">▼</button>
-        <button class="iconbtn" data-dir="right" aria-label="Праворуч">▶</button>
+        <button class="iconbtn" data-dir="fwd" aria-label="Forward">▲</button>
+        <button class="iconbtn" data-dir="left" aria-label="Left">◀</button>
+        <button class="iconbtn" data-dir="back" aria-label="Back">▼</button>
+        <button class="iconbtn" data-dir="right" aria-label="Right">▶</button>
       </div>
       <div class="vertical">
-        <button class="iconbtn" data-dir="up" aria-label="Вгору по Y">⬆ Y+</button>
-        <button class="iconbtn" data-dir="down" aria-label="Вниз по Y">⬇ Y−</button>
+        <button class="iconbtn" data-dir="up" aria-label="Up along Y">⬆ Y+</button>
+        <button class="iconbtn" data-dir="down" aria-label="Down along Y">⬇ Y−</button>
       </div>
     </div>
-    <div class="keyhelp"><kbd>WASD</kbd> / <kbd>←↑↓→</kbd> горизонтально &nbsp; <kbd>E</kbd> вгору &nbsp; <kbd>Q</kbd> вниз &nbsp; <kbd>Space</kbd> пауза &nbsp; <kbd>R</kbd> заново &nbsp; <kbd>C</kbd> камера</div>
+    <div class="keyhelp"><kbd>WASD</kbd> / <kbd>←↑↓→</kbd> horizontal &nbsp; <kbd>E</kbd> up &nbsp; <kbd>Q</kbd> down &nbsp; <kbd>Space</kbd> pause &nbsp; <kbd>R</kbd> restart &nbsp; <kbd>C</kbd> camera</div>
     <div class="settings">
-      <select id="difficulty" aria-label="Складність"><option value="easy" selected>Повільно</option><option value="normal">Помірно</option><option value="hard">Швидко</option></select>
-      <button class="btn" id="pauseBtn">Пауза</button>
-      <button class="btn" id="restartBtn">Заново</button>
+      <select id="difficulty" aria-label="Difficulty"><option value="easy" selected>Slow</option><option value="normal">Medium</option><option value="hard">Fast</option></select>
+      <button class="btn" id="pauseBtn">Pause</button>
+      <button class="btn" id="restartBtn">Restart</button>
     </div>
   </footer>
 </div>
@@ -113,7 +113,7 @@
 'use strict';
 (function(){
 const N=13, H=(N-1)/2, FLOOR=-N/2, CELLS=N*N*N;
-const DIFF={easy:{base:420,min:340,label:'Повільно'},normal:{base:320,min:230,label:'Помірно'},hard:{base:240,min:160,label:'Швидко'}};
+const DIFF={easy:{base:420,min:340,label:'Slow'},normal:{base:320,min:230,label:'Medium'},hard:{base:240,min:160,label:'Fast'}};
 const $=id=>document.getElementById(id);
 const canvas=$('scene'), overlay=$('overlay'), toastEl=$('toast');
 const ui={score:$('score'),best:$('best'),len:$('len'),speed:$('speed'),diffBadge:$('diffBadge'),coords:$('coords'),difficulty:$('difficulty'),pauseBtn:$('pauseBtn'),soundBtn:$('soundBtn')};
@@ -212,15 +212,15 @@ function syncMeshes(){body.count=Math.max(0,snake.length-1);}
 /* HUD: cached DOM nodes, text written only when it actually changes */
 const hudCache={};
 function setText(k,v){if(hudCache[k]!==v){hudCache[k]=v;ui[k].textContent=v;}}
-function updateHUD(){setText('score',String(score));setText('best',String(best));setText('len',String(snake.length));const d=DIFF[ui.difficulty.value];setText('speed','×'+(d.base/tickMs).toFixed(1));setText('diffBadge',d.label);const h=snake[0];setText('coords','X'+(h.x+1)+' Y'+(h.y+1)+' Z'+(h.z+1));ui.difficulty.disabled=(state==='playing'||state==='paused');setText('pauseBtn',state==='paused'?'Продовжити':'Пауза');}
+function updateHUD(){setText('score',String(score));setText('best',String(best));setText('len',String(snake.length));const d=DIFF[ui.difficulty.value];setText('speed','×'+(d.base/tickMs).toFixed(1));setText('diffBadge',d.label);const h=snake[0];setText('coords','X'+(h.x+1)+' Y'+(h.y+1)+' Z'+(h.z+1));ui.difficulty.disabled=(state==='playing'||state==='paused');setText('pauseBtn',state==='paused'?'Resume':'Pause');}
 function saveBest(){if(score>best){best=score;try{localStorage.setItem('snake3d-true-best',String(best));}catch(e){}}}
 
 function showOverlay(kind,reason){
   overlay.classList.remove('hidden');
-  if(kind==='ready'){overlay.innerHTML=`<div class="panel"><h2>Справжня <em>3D</em>-змійка</h2><p>Тепер змійка рухається не лише по площині, а по великому кубу <b style="color:var(--txt)">13 × 13 × 13</b>. Полюй на яблука в об'ємі, використовуй висоту й не врізайся у стіни куба чи власний хвіст.</p><div class="keys"><b><kbd>WASD</kbd> / <kbd>←↑↓→</kbd></b><span>горизонтальний рух</span><b><kbd>E</kbd> / <kbd>Q</kbd></b><span>вгору / вниз по Y</span><b><kbd>Space</kbd></b><span>пауза / старт</span><b><kbd>C</kbd></b><span>повернути камеру</span><b>Перетягування</b><span>обертання куба</span></div><div class="row"><button class="btn primary" data-action="start">▶ Почати 3D-гру</button></div></div>`;}
-  else if(kind==='paused'){overlay.innerHTML=`<div class="panel"><h2>Пауза</h2><p>Куб завмер. Можна видихнути 🙂</p><div class="row"><button class="btn primary" data-action="resume">Продовжити</button><button class="btn" data-action="restart">Заново</button></div></div>`;}
-  else if(kind==='over'){overlay.innerHTML=`<div class="panel"><h2>Гру завершено</h2><p>${reason||''}</p><div class="big">${score}</div><p>очок · рекорд: <b style="color:var(--acc2)">${best}</b></p><div class="row"><button class="btn primary" data-action="restart">↻ Ще раз</button></div></div>`;}
-  else if(kind==='win'){overlay.innerHTML=`<div class="panel"><h2>Перемога! 🏆</h2><p>Ти заповнив увесь куб. Це легендарно.</p><div class="big">${score}</div><div class="row"><button class="btn primary" data-action="restart">Ще раз</button></div></div>`;}
+  if(kind==='ready'){overlay.innerHTML=`<div class="panel"><h2>True <em>3D</em> Snake</h2><p>The snake now moves not just across a plane but through a big <b style="color:var(--txt)">13 × 13 × 13</b> cube. Hunt apples in 3D space, use the height, and don't crash into the cube walls or your own tail.</p><div class="keys"><b><kbd>WASD</kbd> / <kbd>←↑↓→</kbd></b><span>horizontal movement</span><b><kbd>E</kbd> / <kbd>Q</kbd></b><span>up / down along Y</span><b><kbd>Space</kbd></b><span>pause / start</span><b><kbd>C</kbd></b><span>rotate camera</span><b>Drag</b><span>rotate the cube</span></div><div class="row"><button class="btn primary" data-action="start">▶ Start 3D game</button></div></div>`;}
+  else if(kind==='paused'){overlay.innerHTML=`<div class="panel"><h2>Paused</h2><p>The cube is frozen. Take a breath 🙂</p><div class="row"><button class="btn primary" data-action="resume">Resume</button><button class="btn" data-action="restart">Restart</button></div></div>`;}
+  else if(kind==='over'){overlay.innerHTML=`<div class="panel"><h2>Game over</h2><p>${reason||''}</p><div class="big">${score}</div><p>points · best: <b style="color:var(--acc2)">${best}</b></p><div class="row"><button class="btn primary" data-action="restart">↻ Play again</button></div></div>`;}
+  else if(kind==='win'){overlay.innerHTML=`<div class="panel"><h2>Victory! 🏆</h2><p>You filled the whole cube. Legendary.</p><div class="big">${score}</div><div class="row"><button class="btn primary" data-action="restart">Play again</button></div></div>`;}
 }
 function hideOverlay(){overlay.classList.add('hidden');overlay.innerHTML='';}
 overlay.addEventListener('click',e=>{const a=e.target.closest('[data-action]');if(!a)return;if(a.dataset.action==='start')startGame();else if(a.dataset.action==='resume')resume();else if(a.dataset.action==='restart')restart();});
@@ -236,11 +236,11 @@ function win(){state='win';saveBest();updateHUD();beep(880,.15,'triangle',.09);s
 function step(){
   while(queue.length){const d=queue.shift();if(!(d.x===-dir.x&&d.y===-dir.y&&d.z===-dir.z)&&!(d.x===dir.x&&d.y===dir.y&&d.z===dir.z)){dir=d;break;}}
   const h={x:snake[0].x+dir.x,y:snake[0].y+dir.y,z:snake[0].z+dir.z};
-  if(h.x<0||h.x>=N||h.y<0||h.y>=N||h.z<0||h.z>=N){die('Зіткнення зі стіною куба.');return;}
+  if(h.x<0||h.x>=N||h.y<0||h.y>=N||h.z<0||h.z>=N){die('You hit the cube wall.');return;}
   const grow=(h.x===food.x&&h.y===food.y&&h.z===food.z);
   const tail=snake[snake.length-1], hi=idx(h);
   /* the tail cell is vacated this tick unless the snake grows */
-  if(occ[hi]&&(grow||hi!==idx(tail))){die('Змійка вкусила сама себе.');return;}
+  if(occ[hi]&&(grow||hi!==idx(tail))){die('The snake bit itself.');return;}
   /* after the shift, the previous position of segment i is the current position of segment i+1; only the old tail needs storing */
   prevTail=tail;moved=true;snake.unshift(h);
   if(!grow){snake.pop();occ[idx(tail)]=0;}
