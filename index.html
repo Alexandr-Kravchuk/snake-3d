@@ -201,7 +201,7 @@ function freeCell(){
   for(let i=0;i<CELLS;i++){if(!occ[i]&&k--===0){const x=i%N,z=Math.floor(i/N)%N,y=Math.floor(i/(N*N));return {x,y,z};}}
   return null;
 }
-function beep(f,d,type,g){if(!soundOn)return;try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),v=audio.createGain();o.type=type||'sine';o.frequency.value=f;v.gain.setValueAtTime(g||.08,audio.currentTime);v.gain.exponentialRampToValueAtTime(.001,a.currentTime+d);o.connect(v);v.connect(audio.destination);o.start();o.stop(audio.currentTime+d);}catch(e){}}
+function beep(f,d,type,g){if(!soundOn)return;try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();const o=audio.createOscillator(),v=audio.createGain();o.type=type||'sine';o.frequency.value=f;v.gain.setValueAtTime(g||.08,audio.currentTime);v.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);o.connect(v);v.connect(audio.destination);o.start();o.stop(audio.currentTime+d);}catch(e){}}
 function eatSound(){beep(660,.09,'triangle',.09);setTimeout(()=>beep(990,.12,'triangle',.08),60);}
 function dieSound(){beep(220,.25,'sawtooth',.07);setTimeout(()=>beep(140,.35,'sawtooth',.06),120);}
 function toast(t){toastEl.textContent=t;toastEl.style.opacity=1;clearTimeout(toast._t);toast._t=setTimeout(()=>toastEl.style.opacity=0,900);}
