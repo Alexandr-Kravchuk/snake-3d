@@ -41,6 +41,18 @@
   .btn{padding:13px 22px;font-weight:700;font-size:15px}
   .btn.primary{background:linear-gradient(135deg,var(--acc2),var(--acc));color:#04202a;border:none;box-shadow:0 8px 28px rgba(77,227,255,.3)} .btn.primary:hover{filter:brightness(1.08)}
   .panel .row{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+  .panel{max-height:calc(100% - 24px);overflow:auto}
+  .panel .record{color:var(--up);font-weight:700}
+  .seg{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+  .seg button{font:inherit;font-size:13px;padding:6px 11px;border-radius:999px;color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--line);cursor:pointer}
+  .seg button:hover{border-color:rgba(77,227,255,.55);color:var(--txt)}
+  .seg button[aria-pressed="true"]{border-color:var(--acc2);color:var(--acc2);background:rgba(77,227,255,.1)}
+  .rec{width:100%;border-collapse:collapse;margin-top:16px;font-size:14px;font-variant-numeric:tabular-nums}
+  .rec th{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--line)}
+  .rec td{padding:7px 8px;border-bottom:1px solid rgba(110,220,255,.08)}
+  .rec th,.rec td{text-align:right} .rec th:first-child,.rec td:first-child{text-align:left;width:34px} .rec td.score{color:var(--acc2);font-weight:700}
+  .rec tr.mine td{background:rgba(255,209,102,.1)} .rec tr.mine td:first-child{color:var(--up)}
+  .rec .empty td{text-align:center;color:var(--muted);padding:18px 8px}
   .keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;text-align:left;margin:16px auto 0;max-width:340px;font-size:13px;color:var(--muted)} .keys b{color:var(--txt);font-weight:600}
   kbd{padding:2px 7px;border-radius:6px;background:rgba(255,255,255,.07);border:1px solid var(--line);font-family:inherit;font-size:12px}
   footer{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
@@ -52,7 +64,7 @@
   .vertical button{width:64px;font-size:13px;font-weight:700;border-radius:10px}
   .vertical [data-dir="up"]{color:var(--up);border-color:rgba(255,209,102,.35)}
   .vertical [data-dir="down"]{color:#9adfff;border-color:rgba(154,223,255,.3)}
-  .keyhelp{color:var(--muted);font-size:12px;line-height:1.7;flex:1;min-width:200px}
+  .keyhelp{color:var(--muted);font-size:12px;line-height:1.7;flex:1;min-width:200px;display:flex;flex-wrap:wrap;column-gap:12px} .keyhelp>span{white-space:nowrap}
   .settings{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
   select{-webkit-appearance:none;appearance:none;padding:10px 38px 10px 14px;line-height:1.2}
   select,select:hover{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238fb2c6' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;background-size:16px}
@@ -66,7 +78,7 @@
   <header>
     <div class="brand">
       <div class="logo" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" stroke="#4de3ff" stroke-width="1.6"/><path d="M12 22V12M12 12 3 7M12 12l9-5" stroke="#7dff6a" stroke-width="1.4"/><circle cx="12" cy="12" r="2" fill="#ffd166"/></svg></div>
-      <div><h1>SNAKE <span>3D CUBE</span></h1><p>Big 13 × 13 × 13 cube · slow start</p></div>
+      <div><h1>SNAKE <span>3D CUBE</span></h1><p id="subtitle">13 × 13 × 13 cube · Slow</p></div>
     </div>
     <div class="stats">
       <div class="stat"><b id="score">0</b><small>score</small></div>
@@ -75,6 +87,7 @@
     </div>
     <button class="iconbtn" id="soundBtn" aria-pressed="true" title="Sound (M)">🔊</button>
     <button class="iconbtn" id="camBtn" title="Rotate camera (C)" aria-label="Rotate camera"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg></button>
+    <button class="iconbtn" id="recordsBtn" title="Records (L)" aria-label="Records"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/></svg></button>
     <button class="iconbtn" id="resetCamBtn" title="Reset camera" aria-label="Reset camera"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5.5h4V20"/></svg></button>
   </header>
 
@@ -103,8 +116,9 @@
         <button class="iconbtn" data-dir="down" aria-label="Down along Y">⬇ Y−</button>
       </div>
     </div>
-    <div class="keyhelp"><kbd>WASD</kbd> / <kbd>←↑↓→</kbd> horizontal &nbsp; <kbd>E</kbd> up &nbsp; <kbd>Q</kbd> down &nbsp; <kbd>Space</kbd> pause &nbsp; <kbd>R</kbd> restart &nbsp; <kbd>C</kbd> camera</div>
+    <div class="keyhelp"><span><kbd>WASD</kbd> / <kbd>←↑↓→</kbd> horizontal</span> <span><kbd>E</kbd> up</span> <span><kbd>Q</kbd> down</span> <span><kbd>Space</kbd> pause</span> <span><kbd>R</kbd> restart</span> <span><kbd>C</kbd> camera</span> <span><kbd>L</kbd> records</span></div>
     <div class="settings">
+      <select id="size" aria-label="Field size"><option value="7">7 × 7 × 7</option><option value="9">9 × 9 × 9</option><option value="11">11 × 11 × 11</option><option value="13" selected>13 × 13 × 13</option><option value="15">15 × 15 × 15</option></select>
       <select id="difficulty" aria-label="Difficulty"><option value="easy" selected>Slow</option><option value="normal">Medium</option><option value="hard">Fast</option></select>
       <button class="btn" id="pauseBtn">Pause</button>
       <button class="btn" id="restartBtn">Restart</button>
@@ -115,21 +129,40 @@
 <script>
 'use strict';
 (function(){
-const N=13, H=(N-1)/2, FLOOR=-N/2, CELLS=N*N*N;
+const SIZES=[7,9,11,13,15], MAX_N=15, MAX_CELLS=MAX_N*MAX_N*MAX_N;
+let N=13, H=(N-1)/2, FLOOR=-N/2, CELLS=N*N*N;
 const DIFF={easy:{base:420,min:340,label:'Slow'},normal:{base:320,min:230,label:'Medium'},hard:{base:240,min:160,label:'Fast'}};
 const $=id=>document.getElementById(id);
 const canvas=$('scene'), overlay=$('overlay'), toastEl=$('toast');
-const ui={score:$('score'),best:$('best'),len:$('len'),speed:$('speed'),diffBadge:$('diffBadge'),coords:$('coords'),difficulty:$('difficulty'),pauseBtn:$('pauseBtn'),soundBtn:$('soundBtn')};
+const ui={score:$('score'),best:$('best'),len:$('len'),speed:$('speed'),diffBadge:$('diffBadge'),coords:$('coords'),subtitle:$('subtitle'),difficulty:$('difficulty'),size:$('size'),pauseBtn:$('pauseBtn'),soundBtn:$('soundBtn')};
 let state='ready', snake=[], prevTail=null, moved=false, boost=false, boostTurn=false, dir={x:1,y:0,z:0}, queue=[], food={x:0,y:0,z:0};
 let score=0, eaten=0, best=0, tickMs=420, acc=0, last=performance.now();
 let soundOn=true, audio=null;
 let camTheta=.35, camPhi=.95, targetTheta=.35, targetPhi=.95, zoom=1, shake=0;
-try{best=parseInt(localStorage.getItem('snake3d-true-best')||'0',10)||0;}catch(e){}
+
+/* Records: top 10 per difficulty × field size, stored in localStorage */
+const REC_KEY='snake3d-records-v1', PREF_KEY='snake3d-prefs-v1', REC_MAX=10;
+let records={};
+try{records=JSON.parse(localStorage.getItem(REC_KEY)||'{}')||{};}catch(e){records={};}
+/* migrate the single best score of older versions into the default table (Slow · 13) */
+try{const old=parseInt(localStorage.getItem('snake3d-true-best')||'0',10)||0;if(old>0&&!records['easy-13']){records['easy-13']=[{score:old,len:null,date:null}];localStorage.setItem(REC_KEY,JSON.stringify(records));}localStorage.removeItem('snake3d-true-best');}catch(e){}
+const recKey=(d,n)=>d+'-'+n;
+const topFor=(d,n)=>records[recKey(d,n)]||[];
+const storedBest=()=>{const t=topFor(ui.difficulty.value,N);return t.length?t[0].score:0;};
+function addRecord(){
+  if(score<=0)return -1;
+  const k=recKey(ui.difficulty.value,N), e={score,len:snake.length,date:Date.now()};
+  const list=(records[k]||[]).concat(e).sort((a,b)=>b.score-a.score||(a.date||0)-(b.date||0)).slice(0,REC_MAX);
+  records[k]=list;try{localStorage.setItem(REC_KEY,JSON.stringify(records));}catch(err){}
+  return list.indexOf(e);
+}
+function loadPrefs(){try{const p=JSON.parse(localStorage.getItem(PREF_KEY)||'{}');if(p.diff&&DIFF[p.diff])ui.difficulty.value=p.diff;if(SIZES.includes(+p.size))ui.size.value=String(p.size);}catch(e){}}
+function savePrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify({diff:ui.difficulty.value,size:N}));}catch(e){}}
 
 /* Occupancy grid: O(1) self-collision checks and allocation-free free-cell search */
-const occ=new Uint8Array(CELLS);
+let occ=new Uint8Array(CELLS);
 /* visual blend after an instant step: per-segment offset from where it was drawn, fading out quickly */
-const blendOff=new Float32Array(CELLS*3); let blendK=0;
+const blendOff=new Float32Array(MAX_CELLS*3); let blendK=0;
 const idx=c=>(c.y*N+c.z)*N+c.x;
 function rebuildOcc(){occ.fill(0);for(let i=0;i<snake.length;i++)occ[idx(snake[i])]=1;}
 
@@ -146,21 +179,33 @@ const sun=new THREE.DirectionalLight(0xffffff,1.0); sun.position.set(12,20,9); s
 sun.shadow.mapSize.set(1024,1024); const sc=sun.shadow.camera; sc.left=-N;sc.right=N;sc.top=N;sc.bottom=-N;sc.near=1;sc.far=N*5; scene.add(sun);
 const rim=new THREE.PointLight(0x4de3ff,.8,60); rim.position.set(-12,8,-12); scene.add(rim);
 
-/* Arena cube */
+/* Arena cube: rebuilt whenever the field size changes */
 const arena=new THREE.Group(); scene.add(arena);
-const cubeEdges=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(N,N,N)),
-  new THREE.LineBasicMaterial({color:0x4de3ff,transparent:true,opacity:.55}));
-arena.add(cubeEdges);
-const floorGrid=new THREE.GridHelper(N,N,0x2a6a86,0x173648); floorGrid.position.y=FLOOR; arena.add(floorGrid);
-const floorPlane=new THREE.Mesh(new THREE.PlaneGeometry(N,N),new THREE.MeshStandardMaterial({color:0x081420,roughness:.9,metalness:.1,transparent:true,opacity:.85}));
-floorPlane.rotation.x=-Math.PI/2; floorPlane.position.y=FLOOR-.01; floorPlane.receiveShadow=true; arena.add(floorPlane);
-const layerPts=[new THREE.Vector3(-H-.5,0,-H-.5),new THREE.Vector3(H+.5,0,-H-.5),new THREE.Vector3(H+.5,0,H+.5),new THREE.Vector3(-H-.5,0,H+.5)];
-const layerLine=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(layerPts),new THREE.LineBasicMaterial({color:0x7dff6a,transparent:true,opacity:.3}));
-arena.add(layerLine);
-/* 8 corner spheres as one instanced draw call */
-const corners=new THREE.InstancedMesh(new THREE.SphereGeometry(.09,10,8),new THREE.MeshBasicMaterial({color:0x4de3ff}),8);
-{const m=new THREE.Matrix4();let k=0;for(const x of [-1,1])for(const y of [-1,1])for(const z of [-1,1])corners.setMatrixAt(k++,m.makeTranslation(x*N/2,y*N/2,z*N/2));}
-arena.add(corners);
+const edgeMat=new THREE.LineBasicMaterial({color:0x4de3ff,transparent:true,opacity:.55});
+const floorMat=new THREE.MeshStandardMaterial({color:0x081420,roughness:.9,metalness:.1,transparent:true,opacity:.85});
+const layerMat=new THREE.LineBasicMaterial({color:0x7dff6a,transparent:true,opacity:.3});
+const cornerGeo=new THREE.SphereGeometry(.09,10,8), cornerMat=new THREE.MeshBasicMaterial({color:0x4de3ff});
+let layerLine=null;
+function buildArena(){
+  for(const c of arena.children.slice()){arena.remove(c);if(c.geometry&&c.geometry!==cornerGeo)c.geometry.dispose();if(c.isGridHelper)c.material.dispose();}
+  arena.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(N,N,N)),edgeMat));
+  const grid=new THREE.GridHelper(N,N,0x2a6a86,0x173648); grid.position.y=FLOOR; arena.add(grid);
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(N,N),floorMat); floor.rotation.x=-Math.PI/2; floor.position.y=FLOOR-.01; floor.receiveShadow=true; arena.add(floor);
+  const e=H+.5;
+  layerLine=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-e,0,-e),new THREE.Vector3(e,0,-e),new THREE.Vector3(e,0,e),new THREE.Vector3(-e,0,e)]),layerMat);
+  arena.add(layerLine);
+  /* 8 corner spheres as one instanced draw call */
+  const corners=new THREE.InstancedMesh(cornerGeo,cornerMat,8);
+  const m=new THREE.Matrix4();let k=0;for(const x of [-1,1])for(const y of [-1,1])for(const z of [-1,1])corners.setMatrixAt(k++,m.makeTranslation(x*N/2,y*N/2,z*N/2));
+  arena.add(corners);
+  /* shadows and the key light follow the cube size */
+  sc.left=-N;sc.right=N;sc.top=N;sc.bottom=-N;sc.far=N*5;sc.updateProjectionMatrix();
+  sun.position.set(12,20,9).multiplyScalar(N/13);
+}
+function setSize(n){
+  N=n;H=(N-1)/2;FLOOR=-N/2;CELLS=N*N*N;occ=new Uint8Array(CELLS);
+  buildArena();dirty=true;
+}
 
 function roundedBox(size,r){
   const h=size/2-r, sh=new THREE.Shape();
@@ -180,7 +225,7 @@ function makeHead(){
 }
 /* Head is its own group (eyes); the whole body is ONE instanced draw call instead of one mesh per segment */
 const head=makeHead(); scene.add(head);
-const body=new THREE.InstancedMesh(bodyGeo,bodyMat,CELLS);
+const body=new THREE.InstancedMesh(bodyGeo,bodyMat,MAX_CELLS);
 body.instanceMatrix.setUsage(THREE.DynamicDrawUsage); body.castShadow=true; body.frustumCulled=false; body.count=0; scene.add(body);
 
 const foodGroup=new THREE.Group(); scene.add(foodGroup);
@@ -215,27 +260,56 @@ function syncMeshes(){body.count=Math.max(0,snake.length-1);}
 /* HUD: cached DOM nodes, text written only when it actually changes */
 const hudCache={};
 function setText(k,v){if(hudCache[k]!==v){hudCache[k]=v;ui[k].textContent=v;}}
-function updateHUD(){setText('score',String(score));setText('best',String(best));setText('len',String(snake.length));const d=DIFF[ui.difficulty.value];setText('speed','×'+(d.base/tickMs).toFixed(1));setText('diffBadge',d.label);const h=snake[0];setText('coords','X'+(h.x+1)+' Y'+(h.y+1)+' Z'+(h.z+1));ui.difficulty.disabled=(state==='playing'||state==='paused');setText('pauseBtn',state==='paused'?'Resume':'Pause');}
-function saveBest(){if(score>best){best=score;try{localStorage.setItem('snake3d-true-best',String(best));}catch(e){}}}
+function updateHUD(){setText('score',String(score));setText('best',String(best));setText('len',String(snake.length));const d=DIFF[ui.difficulty.value];setText('speed','×'+(d.base/tickMs).toFixed(1));setText('diffBadge',d.label);const h=snake[0];setText('coords','X'+(h.x+1)+' Y'+(h.y+1)+' Z'+(h.z+1));ui.difficulty.disabled=ui.size.disabled=(state==='playing'||state==='paused');setText('subtitle',N+' × '+N+' × '+N+' cube · '+d.label);setText('pauseBtn',state==='paused'?'Resume':'Pause');}
+function saveBest(){best=Math.max(storedBest(),score);}
 
-function showOverlay(kind,reason){
-  overlay.classList.remove('hidden');
-  if(kind==='ready'){overlay.innerHTML=`<div class="panel"><h2>True <em>3D</em> Snake</h2><p>The snake now moves not just across a plane but through a big <b style="color:var(--txt)">13 × 13 × 13</b> cube. Hunt apples in 3D space, use the height, and don't crash into the cube walls or your own tail.</p><div class="keys"><b><kbd>WASD</kbd> / <kbd>←↑↓→</kbd></b><span>horizontal movement</span><b><kbd>E</kbd> / <kbd>Q</kbd></b><span>up / down along Y</span><b><kbd>Space</kbd></b><span>pause / start</span><b><kbd>C</kbd></b><span>rotate camera</span><b>Drag</b><span>rotate the cube</span></div><div class="row"><button class="btn primary" data-action="start">▶ Start 3D game</button></div></div>`;}
-  else if(kind==='paused'){overlay.innerHTML=`<div class="panel"><h2>Paused</h2><p>The cube is frozen. Take a breath 🙂</p><div class="row"><button class="btn primary" data-action="resume">Resume</button><button class="btn" data-action="restart">Restart</button></div></div>`;}
-  else if(kind==='over'){overlay.innerHTML=`<div class="panel"><h2>Game over</h2><p>${reason||''}</p><div class="big">${score}</div><p>points · best: <b style="color:var(--acc2)">${best}</b></p><div class="row"><button class="btn primary" data-action="restart">↻ Play again</button></div></div>`;}
-  else if(kind==='win'){overlay.innerHTML=`<div class="panel"><h2>Victory! 🏆</h2><p>You filled the whole cube. Legendary.</p><div class="big">${score}</div><div class="row"><button class="btn primary" data-action="restart">Play again</button></div></div>`;}
+let lastResult=null;
+function showOverlay(kind){
+  overlay.classList.remove('hidden');overlay.dataset.kind=kind;dirty=true;
+  if(kind==='ready'){overlay.innerHTML=`<div class="panel"><h2>True <em>3D</em> Snake</h2><p>The snake now moves not just across a plane but through a big <b style="color:var(--txt)">${N} × ${N} × ${N}</b> cube. Hunt apples in 3D space, use the height, and don't crash into the cube walls or your own tail.</p><div class="keys"><b><kbd>WASD</kbd> / <kbd>←↑↓→</kbd></b><span>horizontal movement</span><b><kbd>E</kbd> / <kbd>Q</kbd></b><span>up / down along Y</span><b><kbd>Space</kbd></b><span>pause / start</span><b><kbd>C</kbd></b><span>rotate camera</span><b><kbd>L</kbd></b><span>records</span><b>Drag</b><span>rotate the cube</span></div><div class="row"><button class="btn primary" data-action="start">▶ Start 3D game</button><button class="btn" data-action="records">🏆 Records</button></div></div>`;}
+  else if(kind==='paused'){overlay.innerHTML=`<div class="panel"><h2>Paused</h2><p>The cube is frozen. Take a breath 🙂</p><div class="row"><button class="btn primary" data-action="resume">Resume</button><button class="btn" data-action="restart">Restart</button><button class="btn" data-action="records">🏆 Records</button></div></div>`;}
+  else if(kind==='over'||kind==='win'){const r=lastResult;
+    const rec=r.rank>=0?`<p class="record">${r.rank===0?'🥇 New best score!':'New record: #'+(r.rank+1)} · ${DIFF[r.diff].label} · ${r.size} × ${r.size} × ${r.size}</p>`:'';
+    overlay.innerHTML=`<div class="panel"><h2>${kind==='win'?'Victory! 🏆':'Game over'}</h2><p>${kind==='win'?'You filled the whole cube. Legendary.':(r.reason||'')}</p><div class="big">${score}</div><p>points · best: <b style="color:var(--acc2)">${best}</b></p>${rec}<div class="row"><button class="btn primary" data-action="restart">↻ Play again</button><button class="btn" data-action="records">🏆 Records</button></div></div>`;}
+  else if(kind==='records')renderRecords();
 }
-function hideOverlay(){overlay.classList.add('hidden');overlay.innerHTML='';}
-overlay.addEventListener('click',e=>{const a=e.target.closest('[data-action]');if(!a)return;if(a.dataset.action==='start')startGame();else if(a.dataset.action==='resume')resume();else if(a.dataset.action==='restart')restart();});
+/* Records table: filters for difficulty and field size, opens on the current combination */
+let recView=null, recReturn='ready';
+const fmtDate=t=>{if(!t)return '—';const d=new Date(t);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});};
+function renderRecords(){
+  const v=recView, list=topFor(v.diff,v.size), hl=lastResult&&lastResult.diff===v.diff&&lastResult.size===v.size?lastResult.date:null;
+  const diffBtns=Object.keys(DIFF).map(k=>`<button data-rec-diff="${k}" aria-pressed="${k===v.diff}">${DIFF[k].label}</button>`).join('');
+  const sizeBtns=SIZES.map(n=>`<button data-rec-size="${n}" aria-pressed="${n===v.size}">${n}³</button>`).join('');
+  const rows=list.length?list.map((e,i)=>`<tr${hl&&e.date===hl?' class="mine"':''}><td>${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td><td class="score">${e.score}</td><td>${e.len==null?'—':e.len}</td><td>${fmtDate(e.date)}</td></tr>`).join('')
+    :`<tr class="empty"><td colspan="4">No records yet for ${DIFF[v.diff].label} · ${v.size} × ${v.size} × ${v.size}</td></tr>`;
+  overlay.innerHTML=`<div class="panel"><h2>Records 🏆</h2><div class="seg" role="group" aria-label="Difficulty">${diffBtns}</div><div class="seg" role="group" aria-label="Field size">${sizeBtns}</div><table class="rec"><thead><tr><th>#</th><th>Score</th><th>Length</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table><div class="row"><button class="btn primary" data-action="close-records">Close</button></div></div>`;
+}
+function openRecords(){
+  if(state==='playing')pause();
+  if(overlay.dataset.kind==='records')return;
+  recReturn=state==='paused'?'paused':state==='over'?'over':state==='win'?'win':'ready';
+  recView={diff:ui.difficulty.value,size:N};showOverlay('records');
+}
+function closeRecords(){if(overlay.dataset.kind==='records')showOverlay(recReturn);}
+function hideOverlay(){overlay.classList.add('hidden');overlay.innerHTML='';overlay.dataset.kind='';}
+overlay.addEventListener('click',e=>{
+  const rd=e.target.closest('[data-rec-diff]'),rs=e.target.closest('[data-rec-size]');
+  if(rd){recView.diff=rd.dataset.recDiff;renderRecords();return;}
+  if(rs){recView.size=+rs.dataset.recSize;renderRecords();return;}
+  const a=e.target.closest('[data-action]');if(!a)return;const act=a.dataset.action;
+  if(act==='start')startGame();else if(act==='resume')resume();else if(act==='restart')restart();
+  else if(act==='records')openRecords();else if(act==='close-records')closeRecords();
+});
 
-function reset(){const c=Math.floor(N/2);snake=[{x:c,y:c,z:c},{x:c-1,y:c,z:c},{x:c-2,y:c,z:c},{x:c-3,y:c,z:c}];prevTail=null;moved=false;boost=false;boostTurn=false;blendK=0;rebuildOcc();dir={x:1,y:0,z:0};queue=[];score=0;eaten=0;acc=0;tickMs=DIFF[ui.difficulty.value].base;food=freeCell()||{x:0,y:0,z:0};syncMeshes();updateHUD();placeFood();}
+function reset(){const c=Math.floor(N/2);snake=[{x:c,y:c,z:c},{x:c-1,y:c,z:c},{x:c-2,y:c,z:c},{x:c-3,y:c,z:c}];prevTail=null;moved=false;boost=false;boostTurn=false;blendK=0;rebuildOcc();dir={x:1,y:0,z:0};queue=[];score=0;eaten=0;acc=0;tickMs=DIFF[ui.difficulty.value].base;best=storedBest();food=freeCell()||{x:0,y:0,z:0};syncMeshes();updateHUD();placeFood();}
 function startGame(){if(state==='playing')return;reset();state='playing';hideOverlay();updateHUD();beep(520,.08,'triangle',.07);setTimeout(()=>beep(780,.1,'triangle',.07),80);}
 function restart(){state='ready';startGame();}
 function pause(){if(state!=='playing')return;state='paused';showOverlay('paused');updateHUD();}
 function resume(){if(state!=='paused')return;state='playing';hideOverlay();acc=0;updateHUD();}
 function togglePause(){if(state==='playing')pause();else if(state==='paused')resume();else startGame();}
-function die(reason){state='over';saveBest();updateHUD();dieSound();shake=.5;const h=snake[0];burst(wx(h.x),wy(h.y),wz(h.z),0xff5d7a,24);showOverlay('over',reason);}
-function win(){state='win';saveBest();updateHUD();beep(880,.15,'triangle',.09);setTimeout(()=>beep(1320,.3,'triangle',.09),150);showOverlay('win');}
+function finish(reason){const rank=addRecord();lastResult={reason,rank,diff:ui.difficulty.value,size:N,date:rank>=0?topFor(ui.difficulty.value,N)[rank].date:null};best=storedBest();updateHUD();}
+function die(reason){state='over';finish(reason);dieSound();shake=.5;const h=snake[0];burst(wx(h.x),wy(h.y),wz(h.z),0xff5d7a,24);showOverlay('over');}
+function win(){state='win';finish('');beep(880,.15,'triangle',.09);setTimeout(()=>beep(1320,.3,'triangle',.09),150);showOverlay('win');}
 function step(){
   while(queue.length){const d=queue.shift();if(!(d.x===-dir.x&&d.y===-dir.y&&d.z===-dir.z)&&!(d.x===dir.x&&d.y===dir.y&&d.z===dir.z)){dir=d;break;}}
   const h={x:snake[0].x+dir.x,y:snake[0].y+dir.y,z:snake[0].z+dir.z};
@@ -274,7 +348,7 @@ function input(d){
 }
 function drawnPos(out,t){const n=snake.length;for(let i=0;i<n;i++){const to=snake[i],from=moved?(i+1<n?snake[i+1]:(prevTail||to)):to;const o=i*3,k=blendK;
   out[o]=from.x+(to.x-from.x)*t+blendOff[o]*k;out[o+1]=from.y+(to.y-from.y)*t+blendOff[o+1]*k;out[o+2]=from.z+(to.z-from.z)*t+blendOff[o+2]*k;}return n;}
-const posBefore=new Float32Array(CELLS*3), posAfter=new Float32Array(CELLS*3);
+const posBefore=new Float32Array(MAX_CELLS*3), posAfter=new Float32Array(MAX_CELLS*3);
 function instantStep(){
   const nb=drawnPos(posBefore,Math.min(1,acc/tickMs));
   boost=false;boostTurn=false;step();if(state!=='playing')return;acc=0;
@@ -296,9 +370,10 @@ function setDirection(sx,sy,vertical){
    If a device reports no code (some virtual keyboards), fall back to the character, Latin or Ukrainian ЙЦУКЕН. */
 const CODE_ACTIONS={ArrowUp:'fwd',ArrowDown:'back',ArrowLeft:'left',ArrowRight:'right',KeyW:'fwd',KeyS:'back',KeyA:'left',KeyD:'right',
   KeyE:'up',PageUp:'up',KeyQ:'down',PageDown:'down',Space:'pause',KeyR:'restart',KeyC:'cam',KeyM:'sound',
+  KeyL:'records',Escape:'escape',
   Equal:'zoomIn',NumpadAdd:'zoomIn',Minus:'zoomOut',NumpadSubtract:'zoomOut'};
 const CHAR_CODES={w:'KeyW',s:'KeyS',a:'KeyA',d:'KeyD',e:'KeyE',q:'KeyQ',r:'KeyR',c:'KeyC',m:'KeyM',' ':'Space','+':'Equal','=':'Equal','-':'Minus',
-  'ц':'KeyW','і':'KeyS','ы':'KeyS','ф':'KeyA','в':'KeyD','у':'KeyE','й':'KeyQ','к':'KeyR','с':'KeyC','ь':'KeyM'};
+  'ц':'KeyW','і':'KeyS','ы':'KeyS','ф':'KeyA','в':'KeyD','у':'KeyE','й':'KeyQ','к':'KeyR','с':'KeyC','ь':'KeyM','д':'KeyL','l':'KeyL'};
 const DIR_ACTIONS={fwd:[0,1,0],back:[0,-1,0],left:[-1,0,0],right:[1,0,0],up:[0,0,1],down:[0,0,-1]};
 function keyAction(e){
   if(e.code&&CODE_ACTIONS[e.code])return CODE_ACTIONS[e.code];
@@ -315,6 +390,8 @@ window.addEventListener('keydown',e=>{
   else if(act==='sound'){toggleSound();}
   else if(act==='zoomIn'){zoom=Math.max(.55,zoom-.1);}
   else if(act==='zoomOut'){zoom=Math.min(2,zoom+.1);}
+  else if(act==='records'){e.preventDefault();overlay.dataset.kind==='records'?closeRecords():openRecords();}
+  else if(act==='escape'){closeRecords();}
 });
 document.querySelectorAll('[data-dir]').forEach(b=>{b.addEventListener('pointerdown',e=>{e.preventDefault();setDirection(...DIR_ACTIONS[b.dataset.dir]);});});
 let drag=null;
@@ -325,7 +402,10 @@ canvas.addEventListener('pointercancel',()=>drag=null);
 canvas.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(.55,Math.min(2,zoom+(e.deltaY>0?.08:-.08)));},{passive:false});
 function toggleSound(){soundOn=!soundOn;ui.soundBtn.textContent=soundOn?'🔊':'🔇';ui.soundBtn.setAttribute('aria-pressed',String(soundOn));if(soundOn)beep(700,.08,'triangle',.06);}
 ui.soundBtn.onclick=toggleSound;$('camBtn').onclick=()=>{targetTheta+=Math.PI/2;};$('resetCamBtn').onclick=()=>{targetTheta=.35;targetPhi=.95;zoom=1;};ui.pauseBtn.onclick=togglePause;$('restartBtn').onclick=restart;
-ui.difficulty.onchange=()=>{if(state==='ready'||state==='over'||state==='win'){tickMs=DIFF[ui.difficulty.value].base;updateHUD();}};
+const idleState=()=>state==='ready'||state==='over'||state==='win';
+ui.difficulty.onchange=()=>{savePrefs();if(idleState()){tickMs=DIFF[ui.difficulty.value].base;best=storedBest();updateHUD();}};
+ui.size.onchange=()=>{if(!idleState())return;setSize(+ui.size.value);savePrefs();state='ready';reset();showOverlay('ready');};
+$('recordsBtn').onclick=openRecords;
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});window.addEventListener('blur',()=>pause());
 
 let dirty=true;
@@ -368,7 +448,7 @@ function animate(now){
   renderer.render(scene,camera);
   if(state==='playing')adaptQuality(dt);
 }
-reset();resize();showOverlay('ready');updateHUD();requestAnimationFrame(animate);
+loadPrefs();setSize(+ui.size.value);reset();resize();showOverlay('ready');updateHUD();requestAnimationFrame(animate);
 })();
 </script>
 </body>
