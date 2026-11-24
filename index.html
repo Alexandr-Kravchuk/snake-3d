@@ -22,7 +22,7 @@
   .stat b{display:block;font-size:20px;color:var(--acc2);font-variant-numeric:tabular-nums}
   .stat small{color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
   .iconbtn,.btn,select{font:inherit;color:var(--txt);border:1px solid var(--line);background:var(--panel);border-radius:12px;cursor:pointer;transition:.15s transform,.15s background,.15s border-color}
-  .iconbtn{width:42px;height:42px;font-size:18px;display:grid;place-items:center}
+  .iconbtn{width:42px;height:42px;font-size:18px;display:grid;place-items:center} .iconbtn svg{display:block}
   .iconbtn:hover,.btn:hover,select:hover{border-color:rgba(77,227,255,.55);background:rgba(16,36,52,.92)}
   .iconbtn:active,.btn:active{transform:scale(.96)}
   .iconbtn[aria-pressed="true"]{border-color:var(--acc);color:var(--acc)}
@@ -71,8 +71,8 @@
       <div class="stat"><b id="len">4</b><small>length</small></div>
     </div>
     <button class="iconbtn" id="soundBtn" aria-pressed="true" title="Sound (M)">🔊</button>
-    <button class="iconbtn" id="camBtn" title="Rotate camera (C)">⟳</button>
-    <button class="iconbtn" id="resetCamBtn" title="Reset camera">⌂</button>
+    <button class="iconbtn" id="camBtn" title="Rotate camera (C)" aria-label="Rotate camera"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg></button>
+    <button class="iconbtn" id="resetCamBtn" title="Reset camera" aria-label="Reset camera"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5.5h4V20"/></svg></button>
   </header>
 
   <main id="stage">
