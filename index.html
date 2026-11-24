@@ -448,6 +448,15 @@ function animate(now){
   renderer.render(scene,camera);
   if(state==='playing')adaptQuality(dt);
 }
+/* Test hook: only with ?test in the URL. Read-only game state plus food placement, for UI tests. */
+if(new URLSearchParams(location.search).has('test')){
+  const cp=c=>({x:c.x,y:c.y,z:c.z});
+  window.__snake=Object.freeze({
+    get state(){return state;}, get snake(){return snake.map(cp);}, get dir(){return cp(dir);}, get food(){return cp(food);},
+    get score(){return score;}, get best(){return best;}, get tickMs(){return tickMs;}, get size(){return N;},
+    setFood(c){if(c.x<0||c.x>=N||c.y<0||c.y>=N||c.z<0||c.z>=N||occ[idx(c)])throw new Error('bad food cell');food=cp(c);placeFood();dirty=true;}
+  });
+}
 loadPrefs();setSize(+ui.size.value);reset();resize();showOverlay('ready');updateHUD();requestAnimationFrame(animate);
 })();
 </script>
