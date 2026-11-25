@@ -143,11 +143,11 @@ let camTheta=.35, camPhi=.95, targetTheta=.35, targetPhi=.95, zoom=1, shake=0;
 
 /* Skins: body colors (per-segment instance colors), head look and effect colors */
 const SKINS={
-  classic:{label:'Classic',body:[0x59ff8f],em:0x1faa4f,ei:.5,rough:.3,metal:.15,head:0xc4ff8a,headEm:0x66cc33,headEi:.65,eye:0xffffff,pupil:0x050b12,ring:0x7dff6a,burst:0x7dff6a},
-  dragon:{label:'Red Dragon',body:[0xd0140a,0x420404],scales:.72,em:0x300200,ei:.6,rough:.38,metal:.35,head:0xb0120a,headEm:0x380300,headEi:.6,eye:0xffd23f,eyeEm:0xff8a00,pupil:0x140300,slit:true,horns:0xf2dfb4,spikes:0xffb43a,ring:0xff5a2a,burst:0xff8a1f},
-  frost:{label:'Frost',body:[0xeafcff,0x2f6dff],em:0x0b3266,ei:.55,rough:.12,metal:.45,head:0xf2fdff,headEm:0x3d8bd6,headEi:.5,eye:0xffffff,pupil:0x1d4dff,spikes:0xc9f4ff,spikeEm:0x3aa0ff,ring:0x9fe4ff,burst:0xbff4ff},
-  tiger:{label:'Tiger',body:[0xd82a01],stripe:0x060201,em:0x3a1200,ei:.45,rough:.45,metal:.05,head:0xe03402,headEm:0x2a0800,headEi:.5,eye:0xc8ff3a,eyeEm:0x5a8a00,pupil:0x050b12,slit:true,ears:0xd82a01,ring:0xffa040,burst:0xffb050},
-  neon:{label:'Neon',rainbow:true,em:0x1a1a1a,ei:.5,rough:.2,metal:.3,head:0xffffff,headEm:0xff3df0,headEi:.55,eye:0xffffff,pupil:0x050b12,ring:0xff3df0,burst:0xff3df0},
+  classic:{label:'Classic',tex:'scales',texSoft:true,bump:.025,body:[0x59ff8f],em:0x1faa4f,ei:.5,rough:.3,metal:.15,head:0xc4ff8a,headEm:0x66cc33,headEi:.65,eye:0xffffff,pupil:0x050b12,ring:0x7dff6a,burst:0x7dff6a},
+  dragon:{label:'Red Dragon',tex:'scales',bump:.05,fire:true,mouth:true,body:[0xd0140a,0x420404],scales:.72,em:0x300200,ei:.6,rough:.38,metal:.35,head:0xb0120a,headEm:0x380300,headEi:.6,eye:0xffd23f,eyeEm:0xff8a00,pupil:0x140300,slit:true,horns:0xf2dfb4,spikes:0xffb43a,ring:0xff5a2a,burst:0xff8a1f},
+  frost:{label:'Frost',tex:'ice',bump:.03,body:[0xeafcff,0x2f6dff],em:0x0b3266,ei:.55,rough:.12,metal:.45,head:0xf2fdff,headEm:0x3d8bd6,headEi:.5,eye:0xffffff,pupil:0x1d4dff,spikes:0xc9f4ff,spikeEm:0x3aa0ff,ring:0x9fe4ff,burst:0xbff4ff},
+  tiger:{label:'Tiger',tex:'fur',bump:.035,body:[0xd82a01],stripe:0x060201,em:0x3a1200,ei:.45,rough:.45,metal:.05,head:0xe03402,headEm:0x2a0800,headEi:.5,eye:0xc8ff3a,eyeEm:0x5a8a00,pupil:0x050b12,slit:true,ears:0xd82a01,ring:0xffa040,burst:0xffb050},
+  neon:{label:'Neon',tex:'circuit',bump:.02,rainbow:true,em:0x1a1a1a,ei:.5,rough:.2,metal:.3,head:0xffffff,headEm:0xff3df0,headEi:.55,eye:0xffffff,pupil:0x050b12,ring:0xff3df0,burst:0xff3df0},
 };
 const SKIN_IDS=Object.keys(SKINS);
 let skin=SKINS.classic;
@@ -242,9 +242,97 @@ function buildHead(){
     const w=new THREE.Mesh(eyeGeo,eyeW);w.position.set(sx*.23,.2,.4);head.add(w);
     const b=new THREE.Mesh(pupilGeo,eyeB);b.position.set(sx*.23,.2,.49);if(skin.slit)b.scale.set(.38,1.6,1);head.add(b);
     if(skin.horns){const h=new THREE.Mesh(hornGeo,hornMat);h.position.set(sx*.3,.78,-.26);h.rotation.set(-.75,0,-sx*.25);h.castShadow=true;head.add(h);}
+    if(skin.mouth&&sx>0){const mo=new THREE.Mesh(mouthGeo,mouthMat);mo.position.set(0,-.2,.61);head.add(mo);}
     if(skin.ears){const h=new THREE.Mesh(earGeo,hornMat);h.position.set(sx*.34,.66,-.15);h.rotation.set(-.2,Math.PI/4,-sx*.2);head.add(h);}
   }
 }
+/* Procedural body textures: 256 px tileable canvases (grey, multiplied by the instance color), also used as bump maps.
+   ExtrudeGeometry UVs are in world units, so one tile covers one cell face. Built once per skin, on first use. */
+const texCache={};
+function skinTexture(kind,soft){
+  const key=kind+(soft?'-soft':'');if(texCache[key])return texCache[key];
+  const S=256,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');
+  let seed=kind.length*9301+(soft?7:0);const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  const wrap=(fn)=>{for(const ox of [-S,0,S])for(const oy of [-S,0,S]){g.save();g.translate(ox,oy);fn();g.restore();}};
+  if(kind==='scales'){
+    g.fillStyle='#777';g.fillRect(0,0,S,S);
+    const w=soft?32:64,h=soft?16:32,hi=soft?246:238,lo=soft?182:108;
+    for(let r=-2;r<=S/h+1;r++)for(let k=-1;k<=S/w+1;k++){
+      const x=k*w+(r&1?w/2:0),y=r*h,R=w*.62;
+      const gr=g.createRadialGradient(x,y-R*.25,R*.1,x,y,R);gr.addColorStop(0,`rgb(${hi},${hi},${hi})`);gr.addColorStop(.75,`rgb(${(hi+lo)>>1},${(hi+lo)>>1},${(hi+lo)>>1})`);gr.addColorStop(1,`rgb(${lo},${lo},${lo})`);
+      g.fillStyle=gr;g.beginPath();g.arc(x,y,R,0,Math.PI);g.lineTo(x-R,y-h);g.lineTo(x+R,y-h);g.closePath();g.fill();
+      g.strokeStyle=`rgba(0,0,0,${soft?.18:.45})`;g.lineWidth=1.5;g.beginPath();g.arc(x,y,R,.15,Math.PI-.15);g.stroke();
+    }
+  }else if(kind==='ice'){
+    g.fillStyle='#e6e6e6';g.fillRect(0,0,S,S);
+    for(let i=0;i<900;i++){const v=200+rnd()*55|0;g.fillStyle=`rgba(${v},${v},${v},.5)`;g.fillRect(rnd()*S,rnd()*S,3,3);}
+    const cracks=[];for(let i=0;i<14;i++){let x=rnd()*S,y=rnd()*S,a=rnd()*6.3;const pts=[[x,y]];for(let j=0;j<6;j++){a+=(rnd()-.5)*1.2;x+=Math.cos(a)*18;y+=Math.sin(a)*18;pts.push([x,y]);}cracks.push(pts);}
+    wrap(()=>{for(const pts of cracks){g.strokeStyle='rgba(70,90,115,.75)';g.lineWidth=1.8;g.beginPath();pts.forEach(([x,y],j)=>j?g.lineTo(x,y):g.moveTo(x,y));g.stroke();g.strokeStyle='rgba(255,255,255,.8)';g.lineWidth=.8;g.beginPath();pts.forEach(([x,y],j)=>j?g.lineTo(x+1,y+1):g.moveTo(x+1,y+1));g.stroke();}});
+  }else if(kind==='fur'){
+    g.fillStyle='#d8d8d8';g.fillRect(0,0,S,S);
+    const strokes=[];for(let i=0;i<2600;i++)strokes.push([rnd()*S,rnd()*S,(rnd()-.5)*.6,5+rnd()*9,110+rnd()*145|0]);
+    wrap(()=>{for(const [x,y,a,l,v] of strokes){g.strokeStyle=`rgba(${v},${v},${v},.7)`;g.lineWidth=1.2;g.beginPath();g.moveTo(x,y);g.lineTo(x+Math.sin(a)*l,y+Math.cos(a)*l);g.stroke();}});
+  }else{ /* circuit */
+    g.fillStyle='#9a9a9a';g.fillRect(0,0,S,S);g.strokeStyle='#fff';g.lineWidth=3;g.fillStyle='#fff';
+    for(let i=0;i<=S;i+=64){g.beginPath();g.moveTo(i,0);g.lineTo(i,S);g.moveTo(0,i);g.lineTo(S,i);g.stroke();}
+    for(let i=0;i<10;i++){const x=(rnd()*4|0)*64+32,y=(rnd()*4|0)*64;g.beginPath();g.moveTo(x,y);g.lineTo(x,y+32);g.lineTo(x+32,y+32);g.stroke();g.beginPath();g.arc(x+32,y+32,5,0,7);g.fill();}
+  }
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+  return texCache[key]=t;
+}
+const mouthMat=new THREE.MeshBasicMaterial({color:0x1a0200}), mouthGeo=new THREE.BoxGeometry(.56,.07,.04);
+
+/* Dragon fire breath: one THREE.Points draw call, additive soft sprites, fixed pool, no allocation per frame */
+const FIRE_MAX=320, fireGeo=new THREE.BufferGeometry();
+const fPos=new Float32Array(FIRE_MAX*3), fCol=new Float32Array(FIRE_MAX*4), fSize=new Float32Array(FIRE_MAX);
+const fVel=new Float32Array(FIRE_MAX*3), fLife=new Float32Array(FIRE_MAX), fMax=new Float32Array(FIRE_MAX);
+fireGeo.setAttribute('position',new THREE.BufferAttribute(fPos,3).setUsage(THREE.DynamicDrawUsage));
+fireGeo.setAttribute('color4',new THREE.BufferAttribute(fCol,4).setUsage(THREE.DynamicDrawUsage));
+fireGeo.setAttribute('size',new THREE.BufferAttribute(fSize,1).setUsage(THREE.DynamicDrawUsage));
+const fireMat=new THREE.ShaderMaterial({
+  uniforms:{uViewH:{value:800}},transparent:true,depthWrite:false,
+  /* add light to the color but keep the canvas alpha: the canvas is transparent over the page, a written alpha would show as a dark halo */
+  blending:THREE.CustomBlending,blendEquation:THREE.AddEquation,blendSrc:THREE.OneFactor,blendDst:THREE.OneFactor,blendSrcAlpha:THREE.ZeroFactor,blendDstAlpha:THREE.OneFactor,
+  vertexShader:'attribute vec4 color4;attribute float size;uniform float uViewH;varying vec4 vC;void main(){vC=color4;vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;gl_PointSize=size*projectionMatrix[1][1]*uViewH*.5/max(.1,-mv.z);}',
+  fragmentShader:'varying vec4 vC;void main(){vec2 d=gl_PointCoord-.5;float r=dot(d,d)*4.;if(r>1.)discard;float a=(1.-r);gl_FragColor=vec4(vC.rgb*a*a*vC.a*1.6,1.);}'
+});
+const fire=new THREE.Points(fireGeo,fireMat); fire.frustumCulled=false; fireGeo.setDrawRange(0,0); scene.add(fire);
+const fireLight=new THREE.PointLight(0xff7a1a,0,5,2); scene.add(fireLight);
+let fireN=0, breath=0, nextBreath=1.2, fireCarry=0;
+const mouthPos=new THREE.Vector3(), fwdVec=new THREE.Vector3();
+const FIRE_RAMP=[[1,.95,.7],[1,.62,.12],[.95,.22,.03],[.35,.05,.02]];
+function breathe(sec){if(skin.fire)breath=Math.max(breath,sec);}
+function updateFire(dt){
+  if(state==='playing'&&skin.fire){nextBreath-=dt;if(nextBreath<=0){breath=Math.max(breath,.75);nextBreath=2+Math.random()*2.5;}}
+  else breath=0;
+  if(breath>0){
+    breath-=dt;const s=head.scale.x;
+    mouthPos.set(0,-.14,.6).applyQuaternion(head.quaternion).multiplyScalar(s).add(head.position);
+    fwdVec.set(0,0,1).applyQuaternion(head.quaternion);
+    fireCarry+=dt*240;
+    while(fireCarry>=1&&fireN<FIRE_MAX){fireCarry--;const i=fireN++,o=i*3,sp=6+Math.random()*3;
+      fPos[o]=mouthPos.x;fPos[o+1]=mouthPos.y;fPos[o+2]=mouthPos.z;
+      fVel[o]=fwdVec.x*sp+(Math.random()-.5)*1.8;fVel[o+1]=fwdVec.y*sp+(Math.random()-.5)*1.8;fVel[o+2]=fwdVec.z*sp+(Math.random()-.5)*1.8;
+      fLife[i]=fMax[i]=.4+Math.random()*.35;}
+    fireCarry=Math.min(fireCarry,1);
+  }
+  for(let i=fireN-1;i>=0;i--){
+    fLife[i]-=dt;
+    if(fLife[i]<=0){const j=--fireN;if(i!==j){fPos.copyWithin(i*3,j*3,j*3+3);fVel.copyWithin(i*3,j*3,j*3+3);fLife[i]=fLife[j];fMax[i]=fMax[j];}continue;}
+    const o=i*3,drag=Math.exp(-dt*2.2);fVel[o]*=drag;fVel[o+1]=fVel[o+1]*drag+dt*3.5;fVel[o+2]*=drag;
+    fPos[o]+=fVel[o]*dt;fPos[o+1]+=fVel[o+1]*dt;fPos[o+2]+=fVel[o+2]*dt;
+  }
+  for(let i=0;i<fireN;i++){
+    const t=1-fLife[i]/fMax[i],f=Math.min(2.999,t*3),k=f|0,u=f-k,a=FIRE_RAMP[k],b=FIRE_RAMP[k+1],q=i*4;
+    fCol[q]=a[0]+(b[0]-a[0])*u;fCol[q+1]=a[1]+(b[1]-a[1])*u;fCol[q+2]=a[2]+(b[2]-a[2])*u;fCol[q+3]=t<.12?t/.12:1-t*.85;
+    fSize[i]=.25+t*1.05;
+  }
+  fireGeo.setDrawRange(0,fireN);
+  if(fireN){const A=fireGeo.attributes;A.position.needsUpdate=A.color4.needsUpdate=A.size.needsUpdate=true;}
+  fireLight.intensity=breath>0?2.2+Math.random()*.8:Math.max(0,fireLight.intensity-dt*12);
+  if(fireLight.intensity>0)fireLight.position.copy(mouthPos).addScaledVector(fwdVec,.8);
+}
+
 /* the whole body is ONE instanced draw call instead of one mesh per segment; colors are per instance */
 const body=new THREE.InstancedMesh(bodyGeo,bodyMat,MAX_CELLS);
 body.instanceMatrix.setUsage(THREE.DynamicDrawUsage); body.castShadow=true; body.frustumCulled=false; body.count=0; scene.add(body);
@@ -273,6 +361,9 @@ function applySkin(id){
   hornMat.color.setHex(skin.horns||skin.ears||0xffffff);
   if(skin.spikes){spikeMat.color.setHex(skin.spikes);spikeMat.emissive.setHex(skin.spikeEm||skin.em);spikeMat.emissiveIntensity=.5;}
   spikes.visible=!!skin.spikes;headFloorRing.material.color.setHex(skin.ring);
+  const tex=skinTexture(skin.tex,skin.texSoft);
+  for(const m of [bodyMat,headMat]){if(m.map!==tex){m.map=m.bumpMap=tex;m.needsUpdate=true;}m.bumpScale=skin.bump;}
+  if(!skin.fire)breath=0;
   buildHead();if(snake.length)paintBody();dirty=true;
 }
 
@@ -370,7 +461,7 @@ function step(){
   prevTail=tail;moved=true;snake.unshift(h);
   if(!grow){snake.pop();occ[idx(tail)]=0;}
   occ[hi]=1;
-  if(grow){score+=10;eaten++;saveBest();eatSound();burst(wx(food.x),wy(food.y),wz(food.z),skin.burst,18);const d=DIFF[ui.difficulty.value];tickMs=Math.max(d.min,d.base-Math.floor(eaten/6)*8);const nf=freeCell();if(!nf){syncMeshes();win();return;}food=nf;placeFood();toast('+10');}
+  if(grow){score+=10;eaten++;saveBest();eatSound();burst(wx(food.x),wy(food.y),wz(food.z),skin.burst,18);breathe(.5);const d=DIFF[ui.difficulty.value];tickMs=Math.max(d.min,d.base-Math.floor(eaten/6)*8);const nf=freeCell();if(!nf){syncMeshes();win();return;}food=nf;placeFood();toast('+10');}
   syncMeshes();updateHUD();
 }
 function placeFood(){
@@ -460,7 +551,7 @@ ui.skin.onchange=()=>{setSkin();ui.skin.blur();};
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});window.addEventListener('blur',()=>pause());
 
 let dirty=true;
-function resize(){const w=canvas.clientWidth||canvas.parentElement.clientWidth,h=canvas.clientHeight||canvas.parentElement.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();dirty=true;}
+function resize(){const w=canvas.clientWidth||canvas.parentElement.clientWidth,h=canvas.clientHeight||canvas.parentElement.clientHeight;renderer.setSize(w,h,false);fireMat.uniforms.uViewH.value=h*renderer.getPixelRatio();camera.aspect=w/h;camera.updateProjectionMatrix();dirty=true;}
 window.addEventListener('resize',resize);
 if(window.ResizeObserver)new ResizeObserver(resize).observe(canvas);
 let camSettled=false;
@@ -491,12 +582,13 @@ function animate(now){
   updateCamera(dt);
   if(blendK){blendK*=Math.exp(-dt/.045);if(blendK<1e-3)blendK=0;}
   /* Behind a menu overlay with a still camera and no particles nothing visible changes: skip the GPU work */
-  const idle=state!=='playing'&&!overlay.classList.contains('hidden')&&camSettled&&particles.length===0;
+  const idle=state!=='playing'&&!overlay.classList.contains('hidden')&&camSettled&&particles.length===0&&fireN===0;
   if(idle&&!dirty)return;
   dirty=false;
   const t=state==='playing'?Math.min(1,acc/tickMs):1;renderSnake(t);
   foodGroup.rotation.y+=dt*.9;foodRing.rotation.x+=dt*1.1;foodRing.rotation.y+=dt*.7;foodLight.intensity=1.1+Math.sin(now/200)*.25;
   for(let i=particles.length-1;i>=0;i--){const m=particles[i],u=m.userData;u.life-=dt;if(u.life<=0){m.visible=false;particles[i]=particles[particles.length-1];particles.pop();pool.push(m);continue;}u.v.y-=6*dt;m.position.addScaledVector(u.v,dt);m.material.opacity=Math.min(1,u.life*2);m.rotation.x+=dt*5;m.rotation.y+=dt*4;}
+  updateFire(dt);
   renderer.render(scene,camera);
   if(state==='playing')adaptQuality(dt);
 }
@@ -505,7 +597,7 @@ if(new URLSearchParams(location.search).has('test')){
   const cp=c=>({x:c.x,y:c.y,z:c.z});
   window.__snake=Object.freeze({
     get state(){return state;}, get snake(){return snake.map(cp);}, get dir(){return cp(dir);}, get food(){return cp(food);},
-    get score(){return score;}, get best(){return best;}, get tickMs(){return tickMs;}, get size(){return N;}, get skin(){return ui.skin.value;},
+    get score(){return score;}, get best(){return best;}, get tickMs(){return tickMs;}, get size(){return N;}, get skin(){return ui.skin.value;}, get fire(){return fireN;},
     setFood(c){if(c.x<0||c.x>=N||c.y<0||c.y>=N||c.z<0||c.z>=N||occ[idx(c)])throw new Error('bad food cell');food=cp(c);placeFood();dirty=true;}
   });
 }
